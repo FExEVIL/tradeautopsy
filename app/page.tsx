@@ -31,7 +31,7 @@ export default function HomePage() {
           </h1>
           
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Every night, profitable traders ask: "Was it skill or luck?" Losing traders torture themselves: "What am I doing wrong?" 
+            Every night, profitable traders ask: &quot;Was it skill or luck?&quot; Losing traders torture themselves: &quot;What am I doing wrong?&quot; 
             TradeAutopsy analyzes your trades and tells you exactly why you lose—and what to fix.
           </p>
 
@@ -84,7 +84,7 @@ export default function HomePage() {
           <div className="mt-6 bg-gray-900 p-4 rounded-lg border border-red-700">
             <div className="text-red-400 font-semibold">🔴 CRITICAL INSIGHT</div>
             <div className="text-gray-300 mt-1">
-              You lose ₹18,700/month between 2-3:30pm. If you stopped trading after 2pm, you'd be up ₹224,400 this year.
+              You lose ₹18,700/month between 2-3:30pm. If you stopped trading after 2pm, you&apos;d be up ₹224,400 this year.
             </div>
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function HomePage() {
           <div className="bg-gray-900 p-6 rounded-xl border border-gray-700">
             <h3 className="text-xl font-semibold text-emerald-400 mb-3">⏰ Time-Based Analysis</h3>
             <p className="text-gray-400">
-              Discover you're losing ₹18K/month after 2pm? Stop trading afternoons. Data-driven discipline.
+              Discover you&apos;re losing ₹18K/month after 2pm? Stop trading afternoons. Data-driven discipline.
             </p>
           </div>
           
@@ -154,7 +154,7 @@ export default function HomePage() {
       <section className="container mx-auto px-6 py-20 text-center">
         <h2 className="text-4xl font-bold mb-6">Ready to Stop the Bleeding?</h2>
         <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-          Join 1,000+ traders who've saved ₹50+ lakhs by fixing their losing patterns.
+          Join 1,000+ traders who&apos;ve saved ₹50+ lakhs by fixing their losing patterns.
         </p>
         
         <Link 

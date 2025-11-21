@@ -3,16 +3,17 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { Session } from '@supabase/supabase-js'
 
 export function Navbar() {
-  const [session, setSession] = useState<any>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
     })
-  }, [])
+  }, [supabase])
 
   return (
     <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
