@@ -18,14 +18,27 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
-      router.push('/dashboard')
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+
+      // Wait a moment for session to be established and cookies to be set
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Refresh the page to ensure middleware can read the session
       router.refresh()
+
+      // Push to dashboard
+      router.push('/dashboard')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during login'
+      setError(errorMessage)
+      setLoading(false)
     }
   }
 
@@ -92,7 +105,7 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-6 text-center text-sm">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/signup" className="text-emerald-600 font-medium">
             Sign up
           </Link>
