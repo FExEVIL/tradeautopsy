@@ -3,21 +3,37 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'
 
 export function Navbar() {
   const [session, setSession] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
   const supabase = createClientComponentClient()
+  const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
     })
-  }, [])
+  }, [supabase.auth])
+
+  const handleLogout = async () => {
+    setLoading(true)
+    try {
+      await supabase.auth.signOut()
+      setSession(null)
+      router.push('/login')
+    } catch (error) {
+      console.error('Error logging out:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
       <Link href="/" className="text-2xl font-bold text-emerald-400">TradeAutopsy</Link>
-      <div className="space-x-4">
+      <div className="space-x-4 flex items-center">
         {session ? (
           <>
             <Link href="/dashboard" className="px-4 py-2 text-gray-300 hover:text-white">
@@ -26,14 +42,21 @@ export function Navbar() {
             <Link href="/settings" className="px-4 py-2 text-gray-300 hover:text-white">
               Settings
             </Link>
+            <button
+              onClick={handleLogout}
+              disabled={loading}
+              className="px-4 py-2 text-gray-300 hover:text-white disabled:opacity-50"
+            >
+              {loading ? 'Logging out...' : 'Logout'}
+            </button>
           </>
         ) : (
           <>
             <Link href="/login" className="px-4 py-2 text-gray-300 hover:text-white">
               Login
             </Link>
-            <Link 
-              href="/signup" 
+            <Link
+              href="/signup"
               className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700"
             >
               Get Started
