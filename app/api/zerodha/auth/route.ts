@@ -1,15 +1,10 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
-import { getZerodhaLoginURL } from '@/lib/zerodha'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  const loginUrl = getZerodhaLoginURL()
-  return NextResponse.redirect(loginUrl)
+export async function GET(request: NextRequest) {
+  const apiKey = process.env.NEXT_PUBLIC_KITE_API_KEY
+  const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/zerodha/callback`
+  
+  const url = `https://kite.zerodha.com/connect/login?api_key=${apiKey}&v=3&redirect_params=redirect_url=${encodeURIComponent(redirectUrl)}`
+  
+  return NextResponse.redirect(url)
 }

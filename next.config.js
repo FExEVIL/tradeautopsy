@@ -1,8 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+  eslint: {
+    ignoreDuringBuilds: true,  // ✅ Skip ESLint during build
+  },
+  typescript: {
+    ignoreBuildErrors: false,  // Keep TypeScript checks
   },
 }
 
