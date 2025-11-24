@@ -31,9 +31,9 @@ export function AnalyticsCards({ trades }: AnalyticsCardsProps) {
   const avgTradeSize = totalTrades > 0 ? totalVolume / totalTrades : 0
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+<div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 hover-lift animate-fade-in">
       {/* Total Trades */}
-<div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+<div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 hover-lift animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-400">Total Trades</p>
 <div className="w-10 h-10 bg-gray-800/50 border border-gray-700 rounded-lg flex items-center justify-center">
@@ -49,7 +49,7 @@ export function AnalyticsCards({ trades }: AnalyticsCardsProps) {
       </div>
 
       {/* Total P&L */}
-<div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+<div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 hover-lift animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-400">Total P&L</p>
 <div className="w-10 h-10 bg-gray-800/50 border border-gray-700 rounded-lg flex items-center justify-center">
@@ -69,7 +69,7 @@ export function AnalyticsCards({ trades }: AnalyticsCardsProps) {
       </div>
 
       {/* Win Rate */}
-<div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+<div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 hover-lift animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-400">Win Rate</p>
           <div className="w-10 h-10 bg-gray-800 border border-white/10 rounded-lg flex items-center justify-center">
@@ -89,7 +89,7 @@ export function AnalyticsCards({ trades }: AnalyticsCardsProps) {
       </div>
 
       {/* Avg Trade Size */}
-<div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+<div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 hover-lift animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-400">Avg Trade Size</p>
 <div className="w-10 h-10 bg-gray-800/50 border border-gray-700 rounded-lg flex items-center justify-center">
