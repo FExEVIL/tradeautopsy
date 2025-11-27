@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 
 interface CollapsibleSidebarProps {
   activeSection?: string
@@ -10,22 +11,23 @@ interface CollapsibleSidebarProps {
 
 export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange }: CollapsibleSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const pathname = usePathname()
 
   const sections = [
     {
       title: 'IN PROGRESS',
       items: [
-        { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85 },
-        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60 },
+        { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85, href: '/dashboard' },
+        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/dashboard/behavioral' },
       ]
     },
     {
       title: 'READY FOR REVIEW',
       items: [
-        { id: 'analytics', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%' },
-        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights' },
-        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%' },
-        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2' },
+        { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance' },
+        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights', href: '/dashboard/charts' },
+        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt' },
+        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional' },
       ]
     }
   ]
@@ -37,7 +39,7 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
       {/* Header */}
       <div className="p-6 border-b border-gray-800 flex items-center justify-between">
         {!isCollapsed && (
-          <Link href="/dashboard" className="flex items-center gap-3 group">
+          <Link href="/dashboard" prefetch={true} className="flex items-center gap-3 group">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
               <span className="text-black font-bold text-sm">T</span>
             </div>
@@ -77,11 +79,12 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
             )}
             <div className="space-y-1">
               {section.items.map((item) => (
-                <button
+                <Link
                   key={item.id}
-                  onClick={() => onSectionChange?.(item.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${
-                    activeSection === item.id
+                  href={item.href}
+                  prefetch={true}
+                  className={`block w-full text-left px-3 py-2.5 rounded-lg transition-all ${
+                    pathname === item.href || (pathname === '/dashboard' && item.id === activeSection)
                       ? 'bg-gray-800/70 text-white'
                       : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
                   }`}
@@ -114,19 +117,60 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
                       </div>
                     )
                   )}
-                </button>
+                </Link>
               ))}
             </div>
           </div>
         ))}
+
+        {/* Additional Pages */}
+        <div className="mb-6">
+          {!isCollapsed && (
+            <h3 className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-3 px-2">
+              MANAGE
+            </h3>
+          )}
+          <div className="space-y-1">
+            <Link
+              href="/dashboard/trades"
+              prefetch={true}
+              className={`block w-full text-left px-3 py-2.5 rounded-lg transition-all ${
+                pathname === '/dashboard/trades'
+                  ? 'bg-gray-800/70 text-white'
+                  : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                {!isCollapsed && <span className="font-medium text-sm">All Trades</span>}
+              </div>
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              prefetch={true}
+              className={`block w-full text-left px-3 py-2.5 rounded-lg transition-all ${
+                pathname === '/dashboard/settings'
+                  ? 'bg-gray-800/70 text-white'
+                  : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-gray-500" />
+                {!isCollapsed && <span className="font-medium text-sm">Settings</span>}
+              </div>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
       {!isCollapsed && (
         <div className="p-4 border-t border-gray-800">
-          <button className="w-full px-4 py-2 bg-gray-800/70 hover:bg-gray-700/70 text-gray-300 rounded-lg text-sm font-medium transition-colors">
-            Import New Trades
-          </button>
+          <Link href="/dashboard/import" prefetch={true}>
+            <button className="w-full bg-neutral-800 hover:bg-neutral-700 text-white py-3 rounded-lg font-medium transition-colors">
+              Import New Trades
+            </button>
+          </Link>
         </div>
       )}
     </div>

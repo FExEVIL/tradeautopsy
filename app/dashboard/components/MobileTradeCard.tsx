@@ -1,10 +1,12 @@
 import { classifyTradeStrategy } from '@/lib/strategy-classifier'
 
 interface Trade {
-  trade_id: string
+  id: string
   tradingsymbol: string
   transaction_type: string
   quantity: number
+  average_price?: number        
+  entry_price?: number          
   price: number
   pnl: number
   product: string
@@ -59,7 +61,8 @@ export function MobileTradeCard({ trade }: MobileTradeCardProps) {
         </div>
         <div>
           <p className="text-gray-500 mb-1">Price</p>
-          <p className="text-white font-medium">₹{trade.price.toFixed(2)}</p>
+<p className="text-white font-medium">₹{(trade.average_price || trade.entry_price || 0).toFixed(2)}</p>
+
         </div>
       </div>
 
@@ -94,7 +97,9 @@ export function MobileTradesList({ trades }: { trades: Trade[] }) {
   return (
     <div className="space-y-4">
       {trades.map((trade) => (
-        <MobileTradeCard key={trade.trade_id} trade={trade} />
+<MobileTradeCard key={trade.id} trade={trade} />
+
+      
       ))}
     </div>
   )

@@ -1,14 +1,18 @@
 import { classifyTradeStrategy } from '@/lib/strategy-classifier'
 
 interface Trade {
-  trade_id: string
+  id: string
   tradingsymbol: string
   transaction_type: string
   quantity: number
-  price: number
-  pnl: number
-  product: string
-  trade_date: string | null
+  average_price?: number
+  entry_price?: number
+  exit_price?: number
+  trade_date: string
+  pnl: number | null
+  status: string
+  side: string
+  product?: string
 }
 
 interface TradesTableProps {
@@ -28,7 +32,7 @@ export function TradesTable({ trades }: TradesTableProps) {
   }
 
   const getStrategyBadge = (trade: Trade) => {
-    const strategy = classifyTradeStrategy(trade)
+    const strategy = classifyTradeStrategy({ ...trade, product: trade.product || 'MIS' })
     
     const badges = {
       'Intraday': {
@@ -93,8 +97,9 @@ export function TradesTable({ trades }: TradesTableProps) {
         <tbody>
           {trades.map((trade) => (
             <tr 
-              key={trade.trade_id} 
-              className="border-b border-white/5 hover:bg-gray-800/30 transition-colors"
+              key={trade.id}
+              onClick={() => window.location.href = `/dashboard/trades/${trade.id}`}
+              className="border-b border-white/5 hover:bg-gray-800/30 transition-colors cursor-pointer"
             >
               <td className="py-4 px-4">
                 <span className="font-semibold text-white">{trade.tradingsymbol}</span>
@@ -124,7 +129,7 @@ export function TradesTable({ trades }: TradesTableProps) {
                 {trade.quantity}
               </td>
               <td className="py-4 px-4 text-right text-gray-300">
-                ₹{trade.price.toFixed(2)}
+                ₹{(trade.average_price || trade.entry_price || 0).toFixed(2)}
               </td>
               <td className="py-4 px-4 text-right">
                 <span className={`font-semibold ${

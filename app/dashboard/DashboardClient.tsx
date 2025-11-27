@@ -171,62 +171,56 @@ export function DashboardClient({ trades: initialTrades }: { trades: any[] }) {
     }
   }
 
-  return (
-    <div className="flex h-screen bg-[#0d0d0d] overflow-hidden">
-      {/* Desktop Sidebar */}
-      <CollapsibleSidebar activeSection={activeSection} onSectionChange={handleSectionChange} />
+ return (
+  <>
+    {/* Top Tabs - Hidden on mobile */}
+    <div className="hidden lg:block">
+      <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
+    </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Tabs - Hidden on mobile */}
-        <div className="hidden lg:block">
-          <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
+    {/* Mobile Header */}
+    <div className="lg:hidden bg-[#1a1a1a] border-b border-gray-800 p-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+          <span className="text-black font-bold text-sm">T</span>
         </div>
-
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-[#1a1a1a] border-b border-gray-800 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold text-sm">T</span>
-            </div>
-            <div>
-              <h1 className="text-white font-semibold text-sm">TradeAutopsy</h1>
-              <p className="text-[10px] text-gray-600">Trading Analytics</p>
-            </div>
-          </div>
-          <button className="text-gray-400">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto bg-[#0d0d0d] pb-20 lg:pb-0">
-          <div className="p-4 lg:p-8 space-y-6">
-            {renderContent()}
-            
-            {!loading && !error && (
-              <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4 lg:p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg lg:text-xl font-bold text-white">Recent Trades</h2>
-                  <p className="text-xs lg:text-sm text-gray-400">Showing {filtered.length}</p>
-                </div>
-                {/* Desktop Table / Mobile Cards */}
-                <div className="hidden lg:block">
-                  <TradesTable trades={filtered} />
-                </div>
-                <div className="lg:hidden">
-                  <MobileTradesList trades={filtered} />
-                </div>
-              </div>
-            )}
-          </div>
+        <div>
+          <h1 className="text-white font-semibold text-sm">TradeAutopsy</h1>
+          <p className="text-[10px] text-gray-600">Trading Analytics</p>
         </div>
       </div>
-
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav activeSection={activeSection} onSectionChange={handleSectionChange} />
+      <button className="text-gray-400">
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+        </svg>
+      </button>
     </div>
-  )
+
+    {/* Scrollable Content */}
+    <div className="flex-1 overflow-y-auto bg-[#0d0d0d] pb-20 lg:pb-0">
+      <div className="p-4 lg:p-8 space-y-6">
+        {renderContent()}
+        
+        {!loading && !error && (
+          <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4 lg:p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg lg:text-xl font-bold text-white">Recent Trades</h2>
+              <p className="text-xs lg:text-sm text-gray-400">Showing {filtered.length}</p>
+            </div>
+            {/* Desktop Table / Mobile Cards */}
+            <div className="hidden lg:block">
+              <TradesTable trades={filtered} />
+            </div>
+            <div className="lg:hidden">
+              <MobileTradesList trades={filtered} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Mobile Bottom Navigation */}
+    <MobileBottomNav activeSection={activeSection} onSectionChange={handleSectionChange} />
+  </>
+)
 }
