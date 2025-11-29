@@ -8,20 +8,27 @@ interface FilterState {
   symbol: string
   profitLoss: 'all' | 'profit' | 'loss'
   strategy: 'all' | 'Intraday' | 'Delivery' | 'Swing' | 'Options'
+  tag: string  // ADD THIS
 }
 
 interface TradeFiltersProps {
   onFilterChange: (filters: FilterState) => void
   symbols: string[]
+  availableTags: string[]  // ADD THIS
 }
 
-export function TradeFilters({ onFilterChange, symbols }: TradeFiltersProps) {
+export function TradeFilters({ 
+  onFilterChange, 
+  symbols,
+  availableTags  // ADD THIS
+}: TradeFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({
     dateFrom: '',
     dateTo: '',
     symbol: '',
     profitLoss: 'all',
-    strategy: 'all'
+    strategy: 'all',
+    tag: 'all'  // ADD THIS
   })
 
   const [isExpanded, setIsExpanded] = useState(false)
@@ -38,14 +45,15 @@ export function TradeFilters({ onFilterChange, symbols }: TradeFiltersProps) {
       dateTo: '',
       symbol: '',
       profitLoss: 'all',
-      strategy: 'all'
+      strategy: 'all',
+      tag: 'all'  // ADD THIS
     }
     setFilters(clearedFilters)
     onFilterChange(clearedFilters)
   }
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
-    if (key === 'profitLoss' || key === 'strategy') return value !== 'all'
+    if (key === 'profitLoss' || key === 'strategy' || key === 'tag') return value !== 'all'
     return value !== ''
   }).length
 
@@ -133,32 +141,50 @@ export function TradeFilters({ onFilterChange, symbols }: TradeFiltersProps) {
               </select>
             </div>
 
-            {/* Strategy */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Strategy</label>
-              <select
-                value={filters.strategy}
-                onChange={(e) => handleFilterChange('strategy', e.target.value as any)}
-                className="w-full bg-neutral-950 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
-              >
-                <option value="all">All Strategies</option>
-                <option value="Intraday">Intraday</option>
-                <option value="Delivery">Delivery</option>
-                <option value="Swing">Swing</option>
-                <option value="Options">Options</option>
-              </select>
-            </div>
+     {/* Strategy */}
+<div>
+  <label className="block text-sm font-medium text-gray-400 mb-2">Strategy</label>
+  <select
+    value={filters.strategy}
+    onChange={(e) => handleFilterChange('strategy', e.target.value as any)}
+    className="w-full bg-neutral-950 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
+  >
+    <option value="all">All Strategies</option>
+    <option value="Intraday">Intraday</option>
+    <option value="Delivery">Delivery</option>
+    <option value="Swing">Swing</option>
+    <option value="Options">Options</option>
+  </select>
+</div>
 
-            {/* Clear Filters Button */}
-            <div className="flex items-end">
-              <button
-                onClick={clearFilters}
-                disabled={activeFilterCount === 0}
-                className="w-full bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-900 disabled:text-gray-600 text-white py-2 rounded-lg font-medium transition-colors"
-              >
-                Clear Filters
-              </button>
-            </div>
+{/* Tags - ADD THIS ENTIRE BLOCK IF MISSING */}
+<div>
+  <label className="block text-sm font-medium text-gray-400 mb-2">Tag</label>
+  <select
+    value={filters.tag}
+    onChange={(e) => handleFilterChange('tag', e.target.value)}
+    className="w-full bg-neutral-950 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
+  >
+    <option value="all">All Tags</option>
+    {availableTags.map((tag) => (
+      <option key={tag} value={tag}>
+        {tag}
+      </option>
+    ))}
+  </select>
+</div>
+
+{/* Clear Filters Button */}
+<div className="flex items-end">
+  <button
+    onClick={clearFilters}
+    disabled={activeFilterCount === 0}
+    className="w-full bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-900 disabled:text-gray-600 text-white py-2 rounded-lg font-medium transition-colors"
+  >
+    Clear Filters
+  </button>
+</div>
+
           </div>
         </div>
       )}

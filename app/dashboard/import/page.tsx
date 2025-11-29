@@ -1,10 +1,15 @@
-import { CSVImport } from '../components/CSVImport'
+import { createClient } from '@/lib/supabase-server'
+import { redirect } from 'next/navigation'
+import ImportClient from './ImportClient'
 
-export default function ImportPage() {
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-white mb-6">Import Trades</h1>
-      <CSVImport />
-    </div>
-  )
+
+export default async function ImportPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  return <ImportClient userId={user.id} />
 }
