@@ -1,14 +1,62 @@
 import { classifyTradeStrategy } from '@/lib/strategy-classifier'
 import { Trade } from '@/types/trade'
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 
-
+// ✅ ADD SORT TYPES
+type SortField = 'date' | 'symbol' | 'pnl' | 'quantity' | 'strategy' | null
+type SortDirection = 'asc' | 'desc'
 
 interface TradesTableProps {
   trades: Trade[]
   onTradeClick?: (trade: Trade) => void
+  // ✅ ADD SORT PROPS
+  sortField: SortField
+  sortDirection: SortDirection
+  onSort: (field: SortField) => void
 }
 
-export function TradesTable({ trades, onTradeClick }: TradesTableProps) {
+export function TradesTable({ 
+  trades, 
+  onTradeClick,
+  sortField,
+  sortDirection,
+  onSort
+}: TradesTableProps) {
+  
+  // ✅ ADD SORTABLE HEADER COMPONENT
+  const SortableHeader = ({ 
+    field, 
+    label, 
+    align = 'left' 
+  }: { 
+    field: SortField
+    label: string
+    align?: 'left' | 'right'
+  }) => {
+    const isActive = sortField === field
+    return (
+      <th 
+        className={`py-4 px-4 text-sm font-semibold text-gray-400 cursor-pointer hover:text-white transition-colors select-none ${
+          align === 'right' ? 'text-right' : 'text-left'
+        }`}
+        onClick={() => onSort(field)}
+      >
+        <div className={`flex items-center gap-2 ${align === 'right' ? 'justify-end' : ''}`}>
+          {label}
+          {isActive ? (
+            sortDirection === 'asc' ? (
+              <ArrowUp className="w-4 h-4 text-emerald-400" />
+            ) : (
+              <ArrowDown className="w-4 h-4 text-emerald-400" />
+            )
+          ) : (
+            <ArrowUpDown className="w-4 h-4 opacity-30" />
+          )}
+        </div>
+      </th>
+    )
+  }
+
   if (trades.length === 0) {
     return (
       <div className="text-center py-12">
@@ -68,27 +116,20 @@ export function TradesTable({ trades, onTradeClick }: TradesTableProps) {
       </span>
     )
   }
- 
-  const getNotePreview = (note?: string) => {
-  if (!note) return ''
-  const trimmed = note.trim()
-  if (trimmed.length <= 120) return trimmed
-  return trimmed.slice(0, 117) + '...'
-}
-
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-4 px-4 text-sm font-semibold text-gray-400">Symbol</th>
+            {/* ✅ REPLACE REGULAR <th> WITH SortableHeader */}
+            <SortableHeader field="symbol" label="Symbol" />
             <th className="text-left py-4 px-4 text-sm font-semibold text-gray-400">Type</th>
-            <th className="text-left py-4 px-4 text-sm font-semibold text-gray-400">Strategy</th>
-            <th className="text-right py-4 px-4 text-sm font-semibold text-gray-400">Quantity</th>
+            <SortableHeader field="strategy" label="Strategy" />
+            <SortableHeader field="quantity" label="Quantity" align="right" />
             <th className="text-right py-4 px-4 text-sm font-semibold text-gray-400">Price</th>
-            <th className="text-right py-4 px-4 text-sm font-semibold text-gray-400">P&L</th>
-            <th className="text-left py-4 px-4 text-sm font-semibold text-gray-400">Date</th>
+            <SortableHeader field="pnl" label="P&L" align="right" />
+            <SortableHeader field="date" label="Date" />
           </tr>
         </thead>
         <tbody>
@@ -99,44 +140,44 @@ export function TradesTable({ trades, onTradeClick }: TradesTableProps) {
               className="border-b border-white/5 hover:bg-gray-800/30 transition-colors cursor-pointer"
             >
               <td className="py-4 px-4">
-  <div className="flex items-center gap-2">
-    <span className="font-semibold text-white">{trade.tradingsymbol}</span>
-    {trade.journal_note && (
-      <div className="group relative">
-        <svg
-          className="w-4 h-4 text-emerald-400 cursor-help"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-          />
-        </svg>
-        <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 bg-gray-800 text-white text-xs rounded-lg p-3 shadow-lg z-50 border border-gray-700">
-          <p className="line-clamp-3">{trade.journal_note}</p>
-          {trade.journal_tags && trade.journal_tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {trade.journal_tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[10px]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    )}
-  </div>
-</td>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-white">{trade.tradingsymbol}</span>
+                  {trade.journal_note && (
+                    <div className="group relative">
+                      <svg
+                        className="w-4 h-4 text-emerald-400 cursor-help"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                        />
+                      </svg>
+                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 bg-gray-800 text-white text-xs rounded-lg p-3 shadow-lg z-50 border border-gray-700">
+                        <p className="line-clamp-3">{trade.journal_note}</p>
+                        {trade.journal_tags && trade.journal_tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {trade.journal_tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[10px]"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </td>
 
-               <td className="py-4 px-4">
+              <td className="py-4 px-4">
                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${
                   trade.transaction_type === 'BUY' 
                     ? 'bg-green-500/10 text-green-400 border border-green-500/20' 

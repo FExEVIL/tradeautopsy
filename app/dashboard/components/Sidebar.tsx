@@ -9,23 +9,32 @@ interface SidebarProps {
 
 export function Sidebar({ activeSection = 'overview', onSectionChange }: SidebarProps) {
   const sections = [
-    {
-      title: 'IN PROGRESS',
-      items: [
-        { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85 },
-        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60 },
-      ]
-    },
-    {
-      title: 'READY FOR REVIEW',
-      items: [
-        { id: 'analytics', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%' },
-        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights' },
-        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%' },
-        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2' },
-      ]
-    }
-  ]
+  {
+    title: 'IN PROGRESS',
+    items: [
+      { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85 },
+      { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60 },
+    ]
+  },
+  {
+    title: 'READY FOR REVIEW',
+    items: [
+      { id: 'analytics', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%' },
+      { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights' },
+      { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%' },
+      { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2' },
+    ]
+  },
+  {
+    title: 'MANAGE',
+    items: [
+      { id: 'calendar', label: 'Calendar', href: '/dashboard/calendar', isLink: true, stats: '', time: '' },
+      { id: 'trades', label: 'All Trades', href: '/dashboard/trades', isLink: true, stats: '', time: '' },
+      { id: 'settings', label: 'Settings', href: '/dashboard/settings', isLink: true, stats: '', time: '' },
+    ]
+  }
+]
+
 
   return (
     <div className="w-80 h-screen bg-[#1a1a1a] border-r border-gray-800 flex flex-col overflow-hidden">
@@ -50,41 +59,64 @@ export function Sidebar({ activeSection = 'overview', onSectionChange }: Sidebar
               {section.title} {section.items.length}
             </h3>
             <div className="space-y-1">
-              {section.items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onSectionChange?.(item.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${
-                    activeSection === item.id
-                      ? 'bg-gray-800/70 text-white'
-                      : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${
-                      'progress' in item ? 'bg-blue-500 animate-pulse' : 'bg-green-500'
-                    }`} />
-                    <span className="font-medium text-sm">{item.label}</span>
-                  </div>
-                  
-                  {'progress' in item ? (
-                    <>
-                      <p className="text-xs text-gray-600 mb-2 ml-4">{item.status}</p>
-                      <div className="ml-4 w-full h-1 bg-gray-900 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-blue-500 transition-all duration-500"
-                          style={{ width: `${item.progress}%` }}
-                        />
+              {section.items.map((item) => {
+                // If it's a link item (Calendar, All Trades, Settings)
+                if ('isLink' in item && item.isLink) {
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href!}
+                      className={`block w-full text-left px-3 py-2.5 rounded-lg transition-all ${
+                        activeSection === item.id
+                          ? 'bg-gray-800/70 text-white'
+                          : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-500" />
+                        <span className="font-medium text-sm">{item.label}</span>
                       </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-between ml-4 mt-1">
-                      <span className="text-xs text-green-400 font-medium">{item.stats}</span>
-                      <span className="text-xs text-gray-600">{item.time}</span>
+                    </Link>
+                  )
+                }
+
+                // Regular button items (Overview, Behavioral, etc.)
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onSectionChange?.(item.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${
+                      activeSection === item.id
+                        ? 'bg-gray-800/70 text-white'
+                        : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`w-2 h-2 rounded-full ${
+                        'progress' in item ? 'bg-blue-500 animate-pulse' : 'bg-green-500'
+                      }`} />
+                      <span className="font-medium text-sm">{item.label}</span>
                     </div>
-                  )}
-                </button>
-              ))}
+                    
+                    {'progress' in item ? (
+                      <>
+                        <p className="text-xs text-gray-600 mb-2 ml-4">{item.status}</p>
+                        <div className="ml-4 w-full h-1 bg-gray-900 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-500 transition-all duration-500"
+                            style={{ width: `${item.progress}%` }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between ml-4 mt-1">
+                        <span className="text-xs text-green-400 font-medium">{item.stats}</span>
+                        <span className="text-xs text-gray-600">{item.time}</span>
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
         ))}

@@ -17,25 +17,27 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
     {
       title: 'IN PROGRESS',
       items: [
-        { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85, href: '/dashboard' },
-        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/dashboard/behavioral' },
+        { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85, href: '/dashboard', icon: 'O' },
+        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/dashboard/behavioral', icon: 'B' },
       ]
     },
     {
       title: 'READY FOR REVIEW',
       items: [
-        { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance' },
-        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights', href: '/dashboard/charts' },
-        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt' },
-        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional' },
+        { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance', icon: 'P' },
+        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights', href: '/dashboard/charts', icon: 'C' },
+        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt', icon: 'T' },
+        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional', icon: 'E' },
       ]
     }
   ]
 
   return (
-    <div className={`hidden lg:flex flex-col h-screen bg-[#1a1a1a] border-r border-gray-800 transition-all duration-300 ${
-      isCollapsed ? 'w-20' : 'w-80'
-    }`}>
+    <div
+      className={`hidden lg:flex flex-col h-screen bg-[#1a1a1a] border-r border-gray-800 transition-all duration-300 ${
+        isCollapsed ? 'w-16' : 'w-80'
+      }`}
+    >
       {/* Header */}
       <div className="p-6 border-b border-gray-800 flex items-center justify-between">
         {!isCollapsed && (
@@ -91,20 +93,28 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
                   title={isCollapsed ? item.label : undefined}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${
-                      'progress' in item ? 'bg-blue-500 animate-pulse' : 'bg-green-500'
-                    }`} />
-                    {!isCollapsed && (
-                      <span className="font-medium text-sm">{item.label}</span>
+                    {isCollapsed ? (
+                      <div className="w-7 h-7 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-[11px] font-semibold text-neutral-200">
+                        {item.icon}
+                      </div>
+                    ) : (
+                      <>
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            'progress' in item ? 'bg-blue-500 animate-pulse' : 'bg-green-500'
+                          }`}
+                        />
+                        <span className="font-medium text-sm">{item.label}</span>
+                      </>
                     )}
                   </div>
-                  
+
                   {!isCollapsed && (
                     'progress' in item ? (
                       <>
                         <p className="text-xs text-gray-600 mb-2 ml-4">{item.status}</p>
                         <div className="ml-4 w-full h-1 bg-gray-900 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-blue-500 transition-all duration-500"
                             style={{ width: `${item.progress}%` }}
                           />
@@ -127,10 +137,35 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
         <div className="mb-6">
           {!isCollapsed && (
             <h3 className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-3 px-2">
-              MANAGE
+              MANAGE 3
             </h3>
           )}
           <div className="space-y-1">
+            <Link
+              href="/dashboard/calendar"
+              prefetch={true}
+              className={`block w-full text-left px-3 py-2.5 rounded-lg transition-all ${
+                pathname === '/dashboard/calendar'
+                  ? 'bg-gray-800/70 text-white'
+                  : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
+              }`}
+              title={isCollapsed ? 'Calendar' : undefined}
+            >
+              <div className="flex items-center gap-2">
+  {isCollapsed ? (
+    <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/40 flex items-center justify-center text-[11px] font-semibold text-purple-300">
+      C
+    </div>
+  ) : (
+    <>
+      <div className="w-2 h-2 rounded-full bg-purple-500" />
+      <span className="font-medium text-sm">Calendar</span>
+    </>
+  )}
+</div>
+
+            </Link>
+
             <Link
               href="/dashboard/trades"
               prefetch={true}
@@ -139,12 +174,23 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
                   ? 'bg-gray-800/70 text-white'
                   : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
               }`}
+              title={isCollapsed ? 'All Trades' : undefined}
             >
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                {!isCollapsed && <span className="font-medium text-sm">All Trades</span>}
-              </div>
+            <div className="flex items-center gap-2">
+  {isCollapsed ? (
+    <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/40 flex items-center justify-center text-[11px] font-semibold text-blue-300">
+      A
+    </div>
+  ) : (
+    <>
+      <div className="w-2 h-2 rounded-full bg-blue-500" />
+      <span className="font-medium text-sm">All Trades</span>
+    </>
+  )}
+</div>
+
             </Link>
+
             <Link
               href="/dashboard/settings"
               prefetch={true}
@@ -153,11 +199,21 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
                   ? 'bg-gray-800/70 text-white'
                   : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
               }`}
+              title={isCollapsed ? 'Settings' : undefined}
             >
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500" />
-                {!isCollapsed && <span className="font-medium text-sm">Settings</span>}
-              </div>
+             <div className="flex items-center gap-2">
+  {isCollapsed ? (
+    <div className="w-7 h-7 rounded-lg bg-gray-500/10 border border-gray-500/40 flex items-center justify-center text-[11px] font-semibold text-gray-300">
+      S
+    </div>
+  ) : (
+    <>
+      <div className="w-2 h-2 rounded-full bg-gray-500" />
+      <span className="font-medium text-sm">Settings</span>
+    </>
+  )}
+</div>
+
             </Link>
           </div>
         </div>
