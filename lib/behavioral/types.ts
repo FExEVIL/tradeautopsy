@@ -17,6 +17,7 @@ export interface Trade {
   rating?: number
   setup_type?: SetupType
   created_at: string
+  screenshot_url?: string | null
 }
 
 export type EmotionType = 'Revenge' | 'Fear' | 'Calm' | 'Greedy' | 'Disciplined'

@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import type { Trade } from '@/lib/behavioral/types'
+
 import { formatCurrency } from '@/lib/behavioral/utils'
 import EmotionPicker from './EmotionPicker'
 import { createBrowserClient } from '@supabase/ssr'
