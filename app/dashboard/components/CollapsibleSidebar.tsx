@@ -31,6 +31,9 @@ type LinkItem = BaseItem & {
   isLink: true
   stats?: string
   time?: string
+  // Add these optional fields so TypeScript is happy:
+  status?: string 
+  progress?: number
 }
 
 type StatusItem = BaseItem & {
@@ -65,22 +68,25 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
     {
       title: 'IN PROGRESS',
       items: [
-        { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85, href: '/dashboard', icon: LayoutDashboard },
-        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/dashboard/behavioral', icon: BrainCircuit },
+        // Added isLink: true to make them clickable
+        { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85, href: '/dashboard', icon: LayoutDashboard, isLink: true },
+        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/dashboard/behavioral', icon: BrainCircuit, isLink: true },
       ],
     },
     {
       title: 'READY FOR REVIEW',
       items: [
-        { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance', icon: TrendingUp },
-        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights', href: '/dashboard/charts', icon: LineChart },
-        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt', icon: AlertTriangle },
-        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional', icon: HeartPulse },
+        // Added isLink: true to make them clickable
+        { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance', icon: TrendingUp, isLink: true },
+        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights', href: '/dashboard/charts', icon: LineChart, isLink: true },
+        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt', icon: AlertTriangle, isLink: true },
+        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional', icon: HeartPulse, isLink: true },
       ],
     },
     {
       title: 'MANAGE',
       items: [
+        // These were already links
         { id: 'calendar', label: 'Calendar', href: '/dashboard/calendar', isLink: true, icon: Calendar },
         { id: 'journal', label: 'Journal', href: '/dashboard/journal', isLink: true, icon: BookOpen },
         { id: 'trades', label: 'All Trades', href: '/dashboard/trades', isLink: true, icon: List },
@@ -88,6 +94,7 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
       ],
     },
   ]
+
 
   return (
     <div
