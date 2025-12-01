@@ -9,7 +9,8 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  const cookieStore = await request.cookies // ✅ Already a promise in middleware!
+  // ❌ remove await here
+  const cookieStore = request.cookies
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,7 +40,9 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
   // Protect dashboard routes
   if (request.nextUrl.pathname.startsWith('/dashboard') && !session) {
@@ -47,7 +50,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect to dashboard if already logged in
-  if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup') && session) {
+  if (
+    (request.nextUrl.pathname === '/login' ||
+      request.nextUrl.pathname === '/signup') &&
+    session
+  ) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 
 type UserPreferences = {
   base_currency: string
@@ -27,7 +27,9 @@ const TIMEZONES = [
 ]
 
 export default function SettingsPage() {
-  const supabase = createClientComponentClient()
+const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [prefs, setPrefs] = useState<UserPreferences>(DEFAULT_PREFS)
@@ -46,7 +48,6 @@ export default function SettingsPage() {
 
       if (userError || !user) {
         setLoading(false)
-
         return
       }
 

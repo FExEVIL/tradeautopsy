@@ -3,6 +3,54 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
+import {
+  LayoutDashboard,
+  BrainCircuit,
+  TrendingUp,
+  LineChart,
+  AlertTriangle,
+  HeartPulse,
+  Calendar,
+  BookOpen,
+  List,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  LucideIcon,
+} from 'lucide-react'
+
+// Define types for different kinds of sidebar items
+type BaseItem = {
+  id: string
+  label: string
+  icon: LucideIcon
+  href: string
+}
+
+type LinkItem = BaseItem & {
+  isLink: true
+  stats?: string
+  time?: string
+}
+
+type StatusItem = BaseItem & {
+  isLink?: false
+  status: string
+  progress: number
+}
+
+type MetricItem = BaseItem & {
+  isLink?: false
+  time: string
+  stats: string
+}
+
+type SidebarItem = LinkItem | StatusItem | MetricItem
+
+interface Section {
+  title: string
+  items: SidebarItem[]
+}
 
 interface CollapsibleSidebarProps {
   activeSection?: string
@@ -13,35 +61,44 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
   const [isCollapsed, setIsCollapsed] = useState(false)
   const pathname = usePathname()
 
-  const sections = [
+  const sections: Section[] = [
     {
       title: 'IN PROGRESS',
       items: [
-        { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85, href: '/dashboard', icon: 'O' },
-        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/dashboard/behavioral', icon: 'B' },
-      ]
+        { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85, href: '/dashboard', icon: LayoutDashboard },
+        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/dashboard/behavioral', icon: BrainCircuit },
+      ],
     },
     {
       title: 'READY FOR REVIEW',
       items: [
-        { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance', icon: 'P' },
-        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights', href: '/dashboard/charts', icon: 'C' },
-        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt', icon: 'T' },
-        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional', icon: 'E' },
-      ]
-    }
+        { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance', icon: TrendingUp },
+        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights', href: '/dashboard/charts', icon: LineChart },
+        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt', icon: AlertTriangle },
+        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional', icon: HeartPulse },
+      ],
+    },
+    {
+      title: 'MANAGE',
+      items: [
+        { id: 'calendar', label: 'Calendar', href: '/dashboard/calendar', isLink: true, icon: Calendar },
+        { id: 'journal', label: 'Journal', href: '/dashboard/journal', isLink: true, icon: BookOpen },
+        { id: 'trades', label: 'All Trades', href: '/dashboard/trades', isLink: true, icon: List },
+        { id: 'settings', label: 'Settings', href: '/dashboard/settings', isLink: true, icon: Settings },
+      ],
+    },
   ]
 
   return (
     <div
-      className={`hidden lg:flex flex-col h-screen bg-[#1a1a1a] border-r border-gray-800 transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-80'
-      }`}
+      className={`${
+        isCollapsed ? 'w-20' : 'w-80'
+      } h-screen bg-[#1a1a1a] border-r border-gray-800 flex flex-col transition-all duration-300 relative`}
     >
       {/* Header */}
       <div className="p-6 border-b border-gray-800 flex items-center justify-between">
         {!isCollapsed && (
-          <Link href="/dashboard" prefetch={true} className="flex items-center gap-3 group">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
               <span className="text-black font-bold text-sm">T</span>
             </div>
@@ -51,27 +108,16 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
             </div>
           </Link>
         )}
-        {isCollapsed && (
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mx-auto">
-            <span className="text-black font-bold text-sm">T</span>
-          </div>
-        )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="lg:block hidden text-gray-400 hover:text-white transition-colors"
+          className="p-1 hover:bg-gray-800 rounded-lg text-gray-400 transition-colors absolute -right-3 top-8 bg-[#1a1a1a] border border-gray-800"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            {isCollapsed ? (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
-            )}
-          </svg>
+          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
         {sections.map((section, idx) => (
           <div key={idx} className="mb-6">
             {!isCollapsed && (
@@ -80,155 +126,92 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
               </h3>
             )}
             <div className="space-y-1">
-              {section.items.map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  prefetch={true}
-                  className={`block w-full text-left px-3 py-2.5 rounded-lg transition-all ${
-                    pathname === item.href || (pathname === '/dashboard' && item.id === activeSection)
-                      ? 'bg-gray-800/70 text-white'
-                      : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
-                  }`}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {isCollapsed ? (
-                      <div className="w-7 h-7 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-[11px] font-semibold text-neutral-200">
-                        {item.icon}
-                      </div>
-                    ) : (
-                      <>
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            'progress' in item ? 'bg-blue-500 animate-pulse' : 'bg-green-500'
-                          }`}
-                        />
-                        <span className="font-medium text-sm">{item.label}</span>
-                      </>
-                    )}
-                  </div>
+              {section.items.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href
 
-                  {!isCollapsed && (
-                    'progress' in item ? (
-                      <>
-                        <p className="text-xs text-gray-600 mb-2 ml-4">{item.status}</p>
-                        <div className="ml-4 w-full h-1 bg-gray-900 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-blue-500 transition-all duration-500"
-                            style={{ width: `${item.progress}%` }}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex items-center justify-between ml-4 mt-1">
-                        <span className="text-xs text-green-400 font-medium">{item.stats}</span>
-                        <span className="text-xs text-gray-600">{item.time}</span>
+                // Determine content based on item type
+                let content = null
+
+                if ('isLink' in item && item.isLink) {
+                  // Link items (Manage section)
+                  content = (
+                    <Link
+                      href={item.href}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
+                        isActive
+                          ? 'bg-gray-800/70 text-white'
+                          : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-blue-500' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                      {!isCollapsed && <span className="font-medium text-sm">{item.label}</span>}
+                    </Link>
+                  )
+                } else {
+                  // Button items (Overview, Analytics, etc.)
+                  content = (
+                    <button
+                      onClick={() => onSectionChange?.(item.id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg transition-all group ${
+                        isActive
+                          ? 'bg-gray-800/70 text-white'
+                          : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className={`w-5 h-5 ${isActive ? 'text-blue-500' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                        {!isCollapsed && (
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-medium text-sm truncate">{item.label}</span>
+                              {'time' in item && <span className="text-[10px] text-gray-600 ml-2">{item.time}</span>}
+                            </div>
+                            
+                            {'progress' in item ? (
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px]">
+                                  <span className="text-gray-500">{item.status}</span>
+                                  <span className="text-gray-600">{item.progress}%</span>
+                                </div>
+                                <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-blue-500 transition-all duration-500"
+                                    style={{ width: `${item.progress}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              'stats' in item && (
+                                <div className="text-xs text-green-500/80 font-medium">
+                                  {item.stats}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )
-                  )}
-                </Link>
-              ))}
+                    </button>
+                  )
+                }
+
+                return (
+                  <div key={item.id} title={isCollapsed ? item.label : undefined}>
+                    {content}
+                  </div>
+                )
+              })}
             </div>
           </div>
         ))}
-
-        {/* Additional Pages */}
-        <div className="mb-6">
-          {!isCollapsed && (
-            <h3 className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-3 px-2">
-              MANAGE 3
-            </h3>
-          )}
-          <div className="space-y-1">
-            <Link
-              href="/dashboard/calendar"
-              prefetch={true}
-              className={`block w-full text-left px-3 py-2.5 rounded-lg transition-all ${
-                pathname === '/dashboard/calendar'
-                  ? 'bg-gray-800/70 text-white'
-                  : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
-              }`}
-              title={isCollapsed ? 'Calendar' : undefined}
-            >
-              <div className="flex items-center gap-2">
-  {isCollapsed ? (
-    <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/40 flex items-center justify-center text-[11px] font-semibold text-purple-300">
-      C
-    </div>
-  ) : (
-    <>
-      <div className="w-2 h-2 rounded-full bg-purple-500" />
-      <span className="font-medium text-sm">Calendar</span>
-    </>
-  )}
-</div>
-
-            </Link>
-
-            <Link
-              href="/dashboard/trades"
-              prefetch={true}
-              className={`block w-full text-left px-3 py-2.5 rounded-lg transition-all ${
-                pathname === '/dashboard/trades'
-                  ? 'bg-gray-800/70 text-white'
-                  : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
-              }`}
-              title={isCollapsed ? 'All Trades' : undefined}
-            >
-            <div className="flex items-center gap-2">
-  {isCollapsed ? (
-    <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/40 flex items-center justify-center text-[11px] font-semibold text-blue-300">
-      A
-    </div>
-  ) : (
-    <>
-      <div className="w-2 h-2 rounded-full bg-blue-500" />
-      <span className="font-medium text-sm">All Trades</span>
-    </>
-  )}
-</div>
-
-            </Link>
-
-            <Link
-              href="/dashboard/settings"
-              prefetch={true}
-              className={`block w-full text-left px-3 py-2.5 rounded-lg transition-all ${
-                pathname === '/dashboard/settings'
-                  ? 'bg-gray-800/70 text-white'
-                  : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
-              }`}
-              title={isCollapsed ? 'Settings' : undefined}
-            >
-             <div className="flex items-center gap-2">
-  {isCollapsed ? (
-    <div className="w-7 h-7 rounded-lg bg-gray-500/10 border border-gray-500/40 flex items-center justify-center text-[11px] font-semibold text-gray-300">
-      S
-    </div>
-  ) : (
-    <>
-      <div className="w-2 h-2 rounded-full bg-gray-500" />
-      <span className="font-medium text-sm">Settings</span>
-    </>
-  )}
-</div>
-
-            </Link>
-          </div>
-        </div>
       </div>
 
       {/* Footer */}
-      {!isCollapsed && (
-        <div className="p-4 border-t border-gray-800">
-          <Link href="/dashboard/import" prefetch={true}>
-            <button className="w-full bg-neutral-800 hover:bg-neutral-700 text-white py-3 rounded-lg font-medium transition-colors">
-              Import New Trades
-            </button>
-          </Link>
-        </div>
-      )}
+      <div className="p-4 border-t border-gray-800">
+        <button className={`flex items-center justify-center gap-2 w-full px-4 py-2 bg-gray-800/70 hover:bg-gray-700/70 text-gray-300 rounded-lg text-sm font-medium transition-colors ${isCollapsed ? 'px-2' : ''}`}>
+          {!isCollapsed ? 'Import New Trades' : '+'}
+        </button>
+      </div>
     </div>
   )
 }
