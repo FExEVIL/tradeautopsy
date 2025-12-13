@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { Trade } from '@/types/trade'
+import { AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
 
 interface StreakTrackingProps {
   trades: Trade[]
@@ -12,12 +13,10 @@ interface Streak {
   count: number
   label: string
   severity: 'warning' | 'danger' | 'success'
-  icon: string
 }
 
 export function StreakTracking({ trades }: StreakTrackingProps) {
   const streaks = useMemo(() => {
-    // Sort trades by date (most recent first)
     const sortedTrades = [...trades].sort(
       (a, b) => new Date(b.trade_date).getTime() - new Date(a.trade_date).getTime()
     )
@@ -39,7 +38,6 @@ export function StreakTracking({ trades }: StreakTrackingProps) {
         count: lossStreak,
         label: `${lossStreak} consecutive losses`,
         severity: lossStreak >= 5 ? 'danger' : 'warning',
-        icon: '📉',
       })
     }
 
@@ -58,12 +56,11 @@ export function StreakTracking({ trades }: StreakTrackingProps) {
         count: winStreak,
         label: `${winStreak} consecutive wins`,
         severity: 'success',
-        icon: '🔥',
       })
     }
 
-    // Check for repeated bad tags (FOMO, REVENGE, etc.)
-    const recentTrades = sortedTrades.slice(0, 5) // Last 5 trades
+    // Check for repeated bad tags
+    const recentTrades = sortedTrades.slice(0, 5)
     const tagCounts = new Map<string, number>()
     
     recentTrades.forEach((trade) => {
@@ -87,12 +84,11 @@ export function StreakTracking({ trades }: StreakTrackingProps) {
           count,
           label: `${count} "${tag}" trades in last 5`,
           severity: count >= 3 ? 'danger' : 'warning',
-          icon: '⚠️',
         })
       }
     })
 
-    // Check for overtrading (too many trades in one day)
+    // Check for overtrading
     const today = new Date().toISOString().split('T')[0]
     const todayTrades = sortedTrades.filter(
       (t) => t.trade_date.split('T')[0] === today
@@ -103,7 +99,6 @@ export function StreakTracking({ trades }: StreakTrackingProps) {
         count: todayTrades.length,
         label: `${todayTrades.length} trades today`,
         severity: todayTrades.length >= 15 ? 'danger' : 'warning',
-        icon: '🚨',
       })
     }
 
@@ -115,22 +110,10 @@ export function StreakTracking({ trades }: StreakTrackingProps) {
   }
 
   return (
-    <div className="bg-neutral-900 rounded-xl border border-gray-800 p-6 mb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <svg
-          className="w-5 h-5 text-orange-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-          />
-        </svg>
-        <h2 className="text-xl font-bold text-white">Active Streaks</h2>
+    <div className="p-6 rounded-xl bg-[#0A0A0A] border border-white/5">
+      <div className="flex items-center gap-2 mb-6">
+        <AlertTriangle className="w-5 h-5 text-orange-400" />
+        <h3 className="text-lg font-semibold text-white">Active Streaks & Alerts</h3>
       </div>
 
       <div className="space-y-3">
@@ -146,10 +129,16 @@ export function StreakTracking({ trades }: StreakTrackingProps) {
             }`}
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{streak.icon}</span>
+              {streak.type === 'win' ? (
+                <TrendingUp className="w-5 h-5 text-emerald-400" />
+              ) : streak.type === 'loss' ? (
+                <TrendingDown className="w-5 h-5 text-red-400" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-orange-400" />
+              )}
               <div className="flex-1">
                 <p
-                  className={`font-semibold ${
+                  className={`font-semibold text-sm ${
                     streak.severity === 'danger'
                       ? 'text-red-400'
                       : streak.severity === 'warning'

@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import Papa from 'papaparse'
-import { Upload, CheckCircle, AlertCircle, X } from 'lucide-react'
+import { Upload, CheckCircle, AlertCircle, X, Download } from 'lucide-react'
+import { BROKER_PRESETS, detectBrokerFromHeaders, getPresetForBroker } from '@/lib/csv-import/presets'
+import { useProfile } from '@/lib/contexts/ProfileContext'
 
 type CsvRow = Record<string, string>
 type ColumnMapping = Record<string, string>
@@ -19,6 +21,7 @@ interface ValidationError {
 }
 
 export default function ImportClient({ userId }: { userId: string }) {
+  const { activeProfile } = useProfile() // Get active profile from context
   const [file, setFile] = useState<File | null>(null)
   const [parsedData, setParsedData] = useState<ParsedData | null>(null)
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({})
@@ -26,6 +29,9 @@ export default function ImportClient({ userId }: { userId: string }) {
   const [importing, setImporting] = useState(false)
   const [importSuccess, setImportSuccess] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [selectedPreset, setSelectedPreset] = useState<string>('generic')
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewTrades, setPreviewTrades] = useState<any[]>([])
 
   // P&L removed from required columns
   const requiredColumns = [
@@ -42,8 +48,9 @@ export default function ImportClient({ userId }: { userId: string }) {
     { key: 'status', label: 'Status' },
     { key: 'side', label: 'Side' },
     { key: 'product', label: 'Product (MIS/CNC/NRML)' },
-    { key: 'pnl', label: 'P&L' }, // now treated as optional
-    { key: 'trade_id', label: 'Broker Trade ID' },   // NEW
+    // REMOVED: P&L - this is ALWAYS auto-calculated by matching BUY/SELL pairs
+    // Users should never provide P&L in CSV - it will be calculated automatically
+    { key: 'trade_id', label: 'Broker Trade ID' },
 ]
 
   const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -79,22 +86,64 @@ export default function ImportClient({ userId }: { userId: string }) {
           rows: results.data as CsvRow[],
         })
 
+        // Auto-detect broker from headers
+        const detectedBroker = detectBrokerFromHeaders(headers)
+        if (detectedBroker) {
+          setSelectedPreset(detectedBroker)
+        }
+
+        // Get preset mapping or use auto-detection
+        const preset = getPresetForBroker(selectedPreset)
         const autoMapping: ColumnMapping = {}
+        
+        if (preset && preset.columnMapping && Object.keys(preset.columnMapping).length > 0) {
+          // Use preset mapping
+          Object.entries(preset.columnMapping).forEach(([key, presetHeader]) => {
+            // Find matching header (case-insensitive)
+            const matchingHeader = headers.find(h => 
+              h.toLowerCase() === presetHeader.toLowerCase() ||
+              h.toLowerCase().includes(presetHeader.toLowerCase())
+            )
+            if (matchingHeader) {
+              autoMapping[key] = matchingHeader
+            }
+          })
+        }
+        
+        // Fallback to auto-detection for unmapped columns
         headers.forEach((header) => {
           const lowerHeader = header.toLowerCase()
-          if (lowerHeader.includes('symbol')) autoMapping['tradingsymbol'] = header
-          if (lowerHeader.includes('transaction') || lowerHeader.includes('type')) autoMapping['transaction_type'] = header
-          if (lowerHeader.includes('quantity') || lowerHeader.includes('qty')) autoMapping['quantity'] = header
-          // Zerodha has "price", not "average_price" – use price directly
-          if (lowerHeader.includes('price')) autoMapping['average_price'] = header
-          if (lowerHeader.includes('date')) autoMapping['trade_date'] = header
-          // no auto-mapping for pnl because this CSV has no pnl column
-          if (lowerHeader.includes('entry')) autoMapping['entry_price'] = header
-          if (lowerHeader.includes('exit')) autoMapping['exit_price'] = header
-          if (lowerHeader.includes('product')) autoMapping['product'] = header
-          autoMapping['trade_id'] = header       // NEW
-  
+          if (!Object.values(autoMapping).includes(header)) {
+            if (lowerHeader.includes('symbol') && !autoMapping['tradingsymbol']) {
+              autoMapping['tradingsymbol'] = header
+            }
+            if ((lowerHeader.includes('transaction') || lowerHeader.includes('type') || lowerHeader.includes('side') || lowerHeader.includes('buy/sell')) && !autoMapping['transaction_type']) {
+              autoMapping['transaction_type'] = header
+            }
+            if ((lowerHeader.includes('quantity') || lowerHeader.includes('qty')) && !autoMapping['quantity']) {
+              autoMapping['quantity'] = header
+            }
+            if (lowerHeader.includes('price') && !autoMapping['average_price']) {
+              autoMapping['average_price'] = header
+            }
+            if (lowerHeader.includes('date') && !autoMapping['trade_date']) {
+              autoMapping['trade_date'] = header
+            }
+            if (lowerHeader.includes('entry') && !autoMapping['entry_price']) {
+              autoMapping['entry_price'] = header
+            }
+            if (lowerHeader.includes('exit') && !autoMapping['exit_price']) {
+              autoMapping['exit_price'] = header
+            }
+            if (lowerHeader.includes('product') && !autoMapping['product']) {
+              autoMapping['product'] = header
+            }
+            if ((lowerHeader.includes('order') || lowerHeader.includes('trade id')) && !autoMapping['trade_id']) {
+              autoMapping['trade_id'] = header
+            }
+          }
         })
+        
         setColumnMapping(autoMapping)
       },
       error: (error) => {
@@ -144,49 +193,194 @@ export default function ImportClient({ userId }: { userId: string }) {
   }
 
   const handleImport = async () => {
-    if (!validateData() || !parsedData) return
+    if (!validateData() || !parsedData || !file) return
 
     setImporting(true)
     setError(null)
 
-    try {
-   const trades = parsedData.rows.map(row => ({
-  user_id: userId,
-  tradingsymbol: row[columnMapping['tradingsymbol']],
-  transaction_type: row[columnMapping['transaction_type']],
-  quantity: parseInt(row[columnMapping['quantity']]),
-  average_price: parseFloat(row[columnMapping['average_price']]),
-  entry_price: columnMapping['entry_price'] ? parseFloat(row[columnMapping['entry_price']]) || null : null,
-  exit_price: columnMapping['exit_price'] ? parseFloat(row[columnMapping['exit_price']]) || null : null,
-  trade_date: row[columnMapping['trade_date']],
-  trade_id: columnMapping['trade_id']
-    ? row[columnMapping['trade_id']]
-    : null,                                      // NEW
-  pnl: columnMapping['pnl']
-    ? parseFloat(row[columnMapping['pnl']]) || 0
-    : 0,
-  status: columnMapping['status'] ? row[columnMapping['status']] : 'completed',
-  product: columnMapping['product'] ? row[columnMapping['product']] : 'MIS',
-}))
+    // Calculate timeout based on number of trades
+    const tradeCount = parsedData.rows.length
+    const isLargeImport = tradeCount > 200
+    
+    // More generous timeouts:
+    // - Small imports (≤200): 1s per trade, min 2min, max 10min
+    // - Large imports (>200): 0.5s per trade, min 10min, max 20min
+    const IMPORT_TIMEOUT_MS = isLargeImport
+      ? Math.min(Math.max(tradeCount * 500, 600000), 1200000) // 10min to 20min for large imports
+      : Math.min(Math.max(tradeCount * 1000, 120000), 600000) // 2min to 10min for small imports
 
-      const response = await fetch('/api/trades/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trades }),
-      })
+    try {
+      // Show progress for large imports
+      if (tradeCount > 50) {
+        const timeoutSeconds = Math.round(IMPORT_TIMEOUT_MS / 1000)
+        const timeoutMinutes = Math.round(timeoutSeconds / 60)
+        const message = tradeCount > 200
+          ? `Importing ${tradeCount} trades (this may take up to ${timeoutMinutes} minutes). P&L is being calculated automatically.`
+          : `Importing ${tradeCount} trades (this may take up to ${timeoutMinutes} minute${timeoutMinutes > 1 ? 's' : ''}). P&L is being calculated automatically.`
+        console.log(message)
+      }
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), IMPORT_TIMEOUT_MS)
+      
+      let response: Response
+      try {
+        // CRITICAL: Send the CSV file directly to server for auto-detection and P&L calculation
+        // Don't parse client-side - let the server handle it with auto-detection
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        // Get current profile ID from context (client-safe)
+        // Server will also try to get it from cookie if not provided
+        if (activeProfile?.id) {
+          formData.append('profile_id', activeProfile.id)
+        } else {
+          // Fallback to localStorage if context not loaded yet
+          const storedProfileId = localStorage.getItem('current_profile_id')
+          if (storedProfileId) {
+            formData.append('profile_id', storedProfileId)
+          }
+        }
+
+        console.log(`[Import] Sending CSV file to server for auto-detection and P&L calculation...`)
+        console.log(`[Import] File name: ${file.name}, size: ${file.size} bytes`)
+        console.log(`[Import] Profile ID: ${activeProfile?.id || localStorage.getItem('current_profile_id') || 'none'}`)
+        
+        response = await fetch('/api/trades/import', {
+          method: 'POST',
+          body: formData, // Send FormData, not JSON
+          // DO NOT set Content-Type header - browser will set it automatically with boundary
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        
+        // Handle network errors with more specific messages
+        if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted') || fetchError.message?.includes('timeout')) {
+          throw new Error(`Import timed out after ${Math.round(IMPORT_TIMEOUT_MS / 1000)}s. The file is being processed in the background. Please refresh the page in a few minutes to see your trades.`)
+        }
+        
+        if (fetchError.message?.includes('Failed to fetch') || fetchError.name === 'TypeError') {
+          // More specific error message
+          const isNetworkError = !navigator.onLine || fetchError.message.includes('network')
+          throw new Error(
+            isNetworkError 
+              ? 'Network error. Please check your internet connection and try again.'
+              : 'Server error. The import may still be processing. Please wait a moment and refresh the page.'
+          )
+        }
+        
+        // Re-throw other errors
+        throw fetchError
+      }
 
       if (!response.ok) {
-        throw new Error('Import failed')
+        let errorMessage = 'Import failed'
+        let errorDetails: any = null
+        let errorText = ''
+        
+        // Try to get error text first
+        try {
+          errorText = await response.text()
+          console.log('[Import] Raw error response:', errorText)
+        } catch (textError) {
+          console.warn('[Import] Could not read error response as text:', textError)
+        }
+        
+        // Try to parse as JSON
+        try {
+          if (errorText) {
+            errorDetails = JSON.parse(errorText)
+            // Get the FULL error message (prioritize message field which has full text)
+            errorMessage = errorDetails.message || errorDetails.error || errorDetails.details || errorMessage
+            console.log('[Import] Parsed error details:', {
+              message: errorDetails.message,
+              error: errorDetails.error,
+              details: errorDetails.details,
+              name: errorDetails.name
+            })
+          } else {
+            // Try response.json() as fallback
+            errorDetails = await response.json()
+            errorMessage = errorDetails.message || errorDetails.error || errorDetails.details || errorMessage
+          }
+        } catch (parseError) {
+          // If response is not JSON, use status text or raw text
+          errorMessage = errorText || response.statusText || errorMessage
+          console.warn('[Import] Could not parse error as JSON:', parseError)
+          console.warn('[Import] Raw error text:', errorText?.substring(0, 500)) // First 500 chars
+        }
+        
+        // Log error details for debugging
+        console.error('[Import] Server error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorMessage,
+          details: errorDetails,
+          rawText: errorText.substring(0, 500) // First 500 chars
+        })
+        
+        // Provide user-friendly error messages based on status code
+        // Use the full error message from server (not truncated)
+        let userFriendlyMessage = errorMessage
+        
+        if (response.status === 400) {
+          userFriendlyMessage = `Invalid data: ${errorMessage}. Please check your CSV format.`
+        } else if (response.status === 401) {
+          userFriendlyMessage = 'Authentication error. Please log in again.'
+        } else if (response.status === 500) {
+          // For 500 errors, show the full server error message
+          const serverMessage = errorDetails?.message || errorDetails?.error || errorMessage
+          userFriendlyMessage = `Server error: ${serverMessage}`
+          
+          // In development, show more details
+          if (process.env.NODE_ENV === 'development' && errorDetails?.stack) {
+            console.error('[Import] Server error stack:', errorDetails.stack)
+          }
+        }
+        
+        // Log the FULL error message (not truncated) to console
+        console.error('[Import] Full error message:', userFriendlyMessage)
+        if (errorDetails?.message && errorDetails.message !== errorMessage) {
+          console.error('[Import] Server error message:', errorDetails.message)
+        }
+        
+        throw new Error(userFriendlyMessage)
       }
 
       const result = await response.json()
       setImportSuccess(result.count)
+      
+      // P&L is always calculated automatically - no need to check
+      if (result.count > 0) {
+        console.log(`✓ ${result.count} trades imported. P&L calculated automatically.`)
+      }
+      
       setTimeout(() => setImportSuccess(null), 5000)
       setParsedData(null)
       setParsedData(null)
       setFile(null)
     } catch (err) {
-      setError('Failed to import trades. Please try again.')
+      // AbortError will trigger when the timeout fires
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.warn('Import aborted due to timeout')
+      } else {
+        console.error('Import error:', err)
+      }
+      let errorMessage = 'Failed to import trades. Please try again.'
+      
+      if (err instanceof Error) {
+        if (err.name === 'AbortError' || err.message.includes('timeout') || err.message.includes('aborted')) {
+          errorMessage = 'Import timed out. Please try again with a smaller file.'
+        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('network') || err.name === 'TypeError') {
+          errorMessage = 'Network error. Please check your internet connection and try again.'
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setImporting(false)
     }
@@ -196,18 +390,59 @@ export default function ImportClient({ userId }: { userId: string }) {
     <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Import Trades</h1>
-        <p className="text-gray-400 mt-1">Upload your Zerodha tradebook CSV to import trades</p>
+        <p className="text-gray-400 mt-1">Upload CSV from any broker to import trades</p>
       </div>
+
+      {/* Broker Preset Selector */}
+      {parsedData && (
+        <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Broker Preset (optional)
+          </label>
+          <select
+            value={selectedPreset}
+            onChange={(e) => {
+              setSelectedPreset(e.target.value)
+              // Re-apply mapping when preset changes
+              if (parsedData) {
+                const preset = getPresetForBroker(e.target.value)
+                if (preset && preset.columnMapping) {
+                  const newMapping: ColumnMapping = {}
+                  Object.entries(preset.columnMapping).forEach(([key, presetHeader]) => {
+                    const matchingHeader = parsedData.headers.find(h => 
+                      h.toLowerCase() === presetHeader.toLowerCase() ||
+                      h.toLowerCase().includes(presetHeader.toLowerCase())
+                    )
+                    if (matchingHeader) {
+                      newMapping[key] = matchingHeader
+                    }
+                  })
+                  setColumnMapping({ ...columnMapping, ...newMapping })
+                }
+              }
+            }}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+          >
+            {Object.entries(BROKER_PRESETS).map(([key, preset]) => (
+              <option key={key} value={key}>
+                {preset.name} - {preset.description}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {importSuccess && (
   <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-start gap-3">
     <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5" />
     <div>
       <h3 className="font-semibold text-emerald-400">
-        Imported {importSuccess} trades from Zerodha
+        Imported {importSuccess} trades successfully
       </h3>
       <p className="text-sm text-gray-300 mt-1">
-        Your dashboard has been updated with the latest trades.
+        {importSuccess > 0 
+          ? `Your dashboard has been updated with ${importSuccess} trades. P&L has been calculated automatically.`
+          : 'Your dashboard has been updated with the latest trades and calculated P&L.'}
       </p>
     </div>
   </div>
@@ -287,6 +522,14 @@ export default function ImportClient({ userId }: { userId: string }) {
               ))}
             </div>
 
+            {/* Info message about P&L auto-calculation */}
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-400">
+                <strong>💡 Note:</strong> P&L is automatically calculated by matching BUY/SELL pairs. 
+                You don't need a P&L column in your CSV - it will be calculated for you.
+              </p>
+            </div>
+
             <details className="mt-4">
               <summary className="text-sm text-gray-400 cursor-pointer hover:text-white">Optional columns</summary>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -315,7 +558,7 @@ export default function ImportClient({ userId }: { userId: string }) {
               <ul className="space-y-1 text-sm text-gray-300">
                 {validationErrors.map((err, idx) => (
                   <li key={idx}>
-                    {err.row === -1 ? '⚠️' : `Row ${err.row}:`} {err.message}
+                    {err.row === -1 ? '' : `Row ${err.row}: `}{err.message}
                   </li>
                 ))}
               </ul>
@@ -344,16 +587,8 @@ export default function ImportClient({ userId }: { userId: string }) {
                       <td className="py-2 px-3 text-white text-right">{row[columnMapping['quantity']] || '-'}</td>
                       <td className="py-2 px-3 text-white text-right">₹{row[columnMapping['average_price']] || '-'}</td>
                       <td className="py-2 px-3 text-white">{row[columnMapping['trade_date']] || '-'}</td>
-                      <td
-                        className={`py-2 px-3 text-right font-medium ${
-                          columnMapping['pnl'] && row[columnMapping['pnl']]
-                            ? parseFloat(row[columnMapping['pnl']]) >= 0
-                              ? 'text-emerald-400'
-                              : 'text-red-400'
-                            : 'text-gray-400'
-                        }`}
-                      >
-                        ₹{columnMapping['pnl'] && row[columnMapping['pnl']] ? row[columnMapping['pnl']] : '-'}
+                      <td className="py-2 px-3 text-right font-medium text-gray-500 italic">
+                        Auto-calculated
                       </td>
                     </tr>
                   ))}

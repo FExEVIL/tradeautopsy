@@ -44,16 +44,27 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
+  // Check for WorkOS session
+  const workosUserId = request.cookies.get('workos_user_id')?.value
+  const workosProfileId = request.cookies.get('workos_profile_id')?.value
+
+  // Public routes that don't need authentication
+  const publicRoutes = ['/login', '/signup', '/auth/callback/workos']
+  const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+
   // Protect dashboard routes
-  if (request.nextUrl.pathname.startsWith('/dashboard') && !session) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  if (request.nextUrl.pathname.startsWith('/dashboard')) {
+    if (!session && !workosUserId) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
   }
 
-  // Redirect to dashboard if already logged in
+  // Redirect to dashboard if already logged in and trying to access login/signup
   if (
     (request.nextUrl.pathname === '/login' ||
       request.nextUrl.pathname === '/signup') &&
-    session
+    (session || workosUserId) &&
+    !isPublicRoute
   ) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
@@ -62,5 +73,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/signup'],
+  matcher: [
+    '/dashboard/:path*',
+    '/login',
+    '/signup',
+    '/auth/callback/:path*',
+  ],
 }

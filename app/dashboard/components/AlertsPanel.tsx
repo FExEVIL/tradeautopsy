@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { AlertCircle, AlertTriangle, CheckCircle, Info } from 'lucide-react'
 
 interface Alert {
   id: string
   type: 'critical' | 'warning' | 'success' | 'info'
-  icon: string
   title: string
   description: string
   time: string
@@ -31,7 +31,6 @@ export function AlertsPanel({ trades }: AlertsPanelProps) {
       newAlerts.push({
         id: '1',
         type: 'critical',
-        icon: '🔴',
         title: 'HIGH TILT RISK',
         description: `${recentLosses} losses in last 5 trades`,
         time: '2 mins ago',
@@ -52,7 +51,6 @@ export function AlertsPanel({ trades }: AlertsPanelProps) {
       newAlerts.push({
         id: '2',
         type: 'warning',
-        icon: '🟡',
         title: 'LOSS STREAK',
         description: `${lossStreak} consecutive losses`,
         time: '15 mins ago',
@@ -71,7 +69,6 @@ export function AlertsPanel({ trades }: AlertsPanelProps) {
       newAlerts.push({
         id: '3',
         type: 'success',
-        icon: '🟢',
         title: `${bestSymbol[0]} PROFITABLE`,
         description: `+₹${bestSymbol[1].toFixed(2)} total`,
         time: '1 hour ago',
@@ -95,6 +92,19 @@ export function AlertsPanel({ trades }: AlertsPanelProps) {
     }
   }
 
+  const getAlertIcon = (type: Alert['type']) => {
+    switch (type) {
+      case 'critical':
+        return <AlertCircle className="w-5 h-5 text-red-400" />
+      case 'warning':
+        return <AlertTriangle className="w-5 h-5 text-yellow-400" />
+      case 'success':
+        return <CheckCircle className="w-5 h-5 text-green-400" />
+      case 'info':
+        return <Info className="w-5 h-5 text-blue-400" />
+    }
+  }
+
   if (alerts.length === 0) return null
 
   return (
@@ -103,7 +113,7 @@ export function AlertsPanel({ trades }: AlertsPanelProps) {
         {/* Header */}
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-white font-semibold text-sm">🔔 Live Alerts</span>
+            <span className="text-white font-semibold text-sm">Live Alerts</span>
             <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs font-bold rounded-full">
               {alerts.length}
             </span>
@@ -134,7 +144,9 @@ export function AlertsPanel({ trades }: AlertsPanelProps) {
                   className={`border rounded-xl p-4 hover:scale-[1.02] transition-all cursor-pointer ${getAlertStyles(alert.type)}`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl flex-shrink-0">{alert.icon}</span>
+                    <div className="flex-shrink-0">
+                      {getAlertIcon(alert.type)}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-sm mb-1">{alert.title}</h4>
                       <p className="text-xs text-gray-400 mb-2">{alert.description}</p>

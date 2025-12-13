@@ -1,3 +1,5 @@
+import { Target, Lightbulb } from 'lucide-react'
+
 interface Trade {
   pnl: number
 }
@@ -95,7 +97,11 @@ export function HeroPnLCard({ trades }: HeroPnLCardProps) {
               ? 'bg-emerald-500/10 border border-emerald-500/20' 
               : 'bg-yellow-500/10 border border-yellow-500/20'
           }`}>
-            <span className="text-xl">{isProfit ? '🎯' : '💡'}</span>
+            {isProfit ? (
+              <Target size={20} className="text-emerald-400" />
+            ) : (
+              <Lightbulb size={20} className="text-yellow-400" />
+            )}
           </div>
           <div>
             <p className="text-sm font-medium text-white mb-1">

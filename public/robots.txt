@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+Allow: /dashboard
+Allow: /features
+Allow: /pricing
+Allow: /blog
+Disallow: /admin
+Disallow: /api/private
+Disallow: /user/settings
+Disallow: /*.json
+Disallow: /search
+Crawl-delay: 1
+
+# Sitemaps
+Sitemap: https://www.tradeautopsy.in/sitemap.xml
+Sitemap: https://www.tradeautopsy.in/blog-sitemap.xml
+
+# Specific bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /

@@ -1,17 +1,16 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { TradeFilters } from '../components/TradeFilters'
 import { TradesTable } from '../components/TradesTable'
 import TradeDetailDrawer from '../components/TradeDetailDrawer'
 import { classifyTradeStrategy } from '@/lib/strategy-classifier'
 import { Trade } from '@/types/trade'
-import { TagAnalytics } from '../components/TagAnalytics'
-import { TimePatterns } from '../components/TimePatterns'
-import { StreakTracking } from '../components/StreakTracking'
 import { ExportButton } from '../components/ExportButton'
 import SearchBar from '../components/SearchBar'
 import { useDebounce } from '@/lib/useDebounce'
+import { PnLIndicator } from '@/components/PnLIndicator'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 type SortField = 'date' | 'symbol' | 'pnl' | 'quantity' | 'strategy' | null
 type SortDirection = 'asc' | 'desc'
@@ -29,6 +28,8 @@ type LastImportInfo = {
   rows: number
   date: string
 } | null
+
+const PAGE_SIZE = 50
 
 export default function TradesPageClient({
   trades,
@@ -49,6 +50,7 @@ export default function TradesPageClient({
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [currentPage, setCurrentPage] = useState(1)
   
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearch = useDebounce(searchQuery, 300)
@@ -79,16 +81,11 @@ export default function TradesPageClient({
 
   const filteredTrades = useMemo(() => {
     let result = trades.filter((trade) => {
-      // Search filter
+      // Search filter - only by symbol (no notes/tags search in All Trades)
       if (debouncedSearch) {
         const searchLower = debouncedSearch.toLowerCase()
         const matchesSymbol = trade.tradingsymbol.toLowerCase().includes(searchLower)
-        const matchesNote = trade.journal_note?.toLowerCase().includes(searchLower) || false
-        const matchesTags = trade.journal_tags?.some(tag => 
-          tag.toLowerCase().includes(searchLower)
-        ) || false
-
-        if (!matchesSymbol && !matchesNote && !matchesTags) {
+        if (!matchesSymbol) {
           return false
         }
       }
@@ -106,6 +103,18 @@ export default function TradesPageClient({
         filters.dateTo &&
         new Date(trade.trade_date) > new Date(filters.dateTo)
       ) {
+        return false
+      }
+
+      // Profit/Loss filter
+      if (filters.profitLoss !== 'all') {
+        const pnl = trade.pnl || 0
+        if (filters.profitLoss === 'profit' && pnl <= 0) return false
+        if (filters.profitLoss === 'loss' && pnl >= 0) return false
+      }
+
+      // Symbol filter
+      if (filters.symbol && trade.tradingsymbol !== filters.symbol) {
         return false
       }
 
@@ -176,6 +185,18 @@ export default function TradesPageClient({
     return result
   }, [trades, filters, sortField, sortDirection, debouncedSearch])
 
+  // Pagination
+  const totalPages = Math.ceil(filteredTrades.length / PAGE_SIZE)
+  const paginatedTrades = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE
+    return filteredTrades.slice(start, start + PAGE_SIZE)
+  }, [filteredTrades, currentPage])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filters, debouncedSearch])
+
   const stats = useMemo(() => {
     const totalPnL = filteredTrades.reduce(
       (sum, t) => sum + (t.pnl || 0),
@@ -196,22 +217,52 @@ export default function TradesPageClient({
     note: string,
     tags: string[]
   ) => {
-    await fetch(`/api/trades/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        note,
-        tags,
-      }),
-    })
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      
+      const response = await fetch(`/api/trades/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          note,
+          tags,
+        }),
+        signal: controller.signal,
+      })
+      
+      clearTimeout(timeoutId)
 
-    setSelectedTrade(null)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to save journal entry')
+      }
+
+      setSelectedTrade(null)
+      // Optionally show success message
+    } catch (err) {
+      console.error('Save journal error:', err)
+      
+      let errorMessage = 'Failed to save. Please try again.'
+      if (err instanceof Error) {
+        if (err.name === 'AbortError' || err.message.includes('timeout') || err.message.includes('aborted')) {
+          errorMessage = 'Request timed out. Please try again.'
+        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('network') || err.name === 'TypeError') {
+          errorMessage = 'Network error. Please check your connection and try again.'
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      // Show error to user (you might want to add a toast notification here)
+      alert(errorMessage)
+    }
   }
 
   return (
     <div className="p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-4 flex items-start justify-between">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-1">All Trades</h1>
             <p className="text-gray-400">
@@ -239,30 +290,25 @@ export default function TradesPageClient({
           <ExportButton trades={filteredTrades} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-neutral-900 rounded-xl p-6 border border-gray-800">
+        {/* Simple Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-[#0A0A0A] rounded-xl p-6 border border-white/5">
             <p className="text-gray-400 text-sm mb-2">Total P&L</p>
-            <p
-              className={`text-3xl font-bold ${
-                stats.totalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'
-              }`}
-            >
-              {stats.totalPnL >= 0 ? '+' : ''}₹{stats.totalPnL.toFixed(2)}
-            </p>
+            <PnLIndicator value={stats.totalPnL} size="lg" />
           </div>
-          <div className="bg-neutral-900 rounded-xl p-6 border border-gray-800">
+          <div className="bg-[#0A0A0A] rounded-xl p-6 border border-white/5">
             <p className="text-gray-400 text-sm mb-2">Win Rate</p>
             <p className="text-3xl font-bold text-white">
               {stats.winRate.toFixed(1)}%
             </p>
           </div>
-          <div className="bg-neutral-900 rounded-xl p-6 border border-gray-800">
+          <div className="bg-[#0A0A0A] rounded-xl p-6 border border-white/5">
             <p className="text-gray-400 text-sm mb-2">Wins</p>
-            <p className="text-3xl font-bold text-emerald-400">
+            <p className="text-3xl font-bold text-green-400">
               {stats.wins}
             </p>
           </div>
-          <div className="bg-neutral-900 rounded-xl p-6 border border-gray-800">
+          <div className="bg-[#0A0A0A] rounded-xl p-6 border border-white/5">
             <p className="text-gray-400 text-sm mb-2">Losses</p>
             <p className="text-3xl font-bold text-red-400">
               {stats.losses}
@@ -270,40 +316,64 @@ export default function TradesPageClient({
           </div>
         </div>
 
-        <StreakTracking trades={trades} />
-
-        <TagAnalytics trades={filteredTrades} />
-
-        <TimePatterns trades={filteredTrades} />
-
-        <div className="mb-6">
+        {/* Search and Filters */}
+        <div className="space-y-4">
           <SearchBar
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search by symbol, notes, or tags..."
+            placeholder="Search by symbol..."
           />
           {debouncedSearch && (
-            <p className="text-sm text-gray-400 mt-2">
+            <p className="text-sm text-gray-400">
               Searching for: <span className="text-emerald-400">"{debouncedSearch}"</span>
             </p>
           )}
+
+          <TradeFilters 
+            onFilterChange={setFilters} 
+            symbols={symbols}
+            availableTags={availableTags}
+          />
         </div>
 
-        <TradeFilters 
-          onFilterChange={setFilters} 
-          symbols={symbols}
-          availableTags={availableTags}
-        />
-
-        <div className="bg-neutral-900 rounded-xl border border-gray-800 overflow-hidden">
+        {/* Trades Table */}
+        <div className="bg-[#0F0F0F] rounded-xl border border-white/5 overflow-hidden">
           <TradesTable 
-            trades={filteredTrades} 
+            trades={paginatedTrades} 
             onTradeClick={setSelectedTrade}
             sortField={sortField}
             sortDirection={sortDirection}
             onSort={handleSort}
           />
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between bg-[#0F0F0F] p-4 rounded-xl border border-white/5">
+            <div className="text-sm text-gray-400">
+              Showing {((currentPage - 1) * PAGE_SIZE) + 1} to {Math.min(currentPage * PAGE_SIZE, filteredTrades.length)} of {filteredTrades.length} trades
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-[#0A0A0A] border border-white/5 text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm text-gray-400 px-3">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-[#0A0A0A] border border-white/5 text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <TradeDetailDrawer
           trade={selectedTrade}

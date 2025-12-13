@@ -193,3 +193,57 @@ body {
     0 0 0 1px rgba(255, 255, 255, 0.05),
     0 10px 30px -10px rgba(0, 0, 0, 0.5);
 }
+
+/* ========================================
+   CUSTOM SCROLLBAR STYLING - CROSS-PLATFORM
+   ======================================== */
+
+/* Firefox - Thin scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) - Thin scrollbar */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Profile switching animation */
+.profile-switching {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.profile-switching * {
+  transition: opacity 0.2s ease-in-out;
+}

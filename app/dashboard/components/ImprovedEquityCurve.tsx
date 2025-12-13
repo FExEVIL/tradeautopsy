@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { TrendingUp } from 'lucide-react'
 
 interface Trade {
   pnl: number
@@ -44,7 +45,8 @@ export function ImprovedEquityCurve({ trades }: ImprovedEquityCurveProps) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
-            📈 Equity Curve
+            <TrendingUp className="w-5 h-5 text-blue-400" />
+            Equity Curve
             <span className="text-sm font-normal text-gray-500">(Your journey)</span>
           </h3>
           <p className={`text-3xl font-bold ${totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>

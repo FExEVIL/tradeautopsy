@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Rocket, BarChart3, Brain, Search, Sparkles, Hand } from 'lucide-react'
 
 export function OnboardingTour() {
   const [isVisible, setIsVisible] = useState(false)
@@ -16,29 +17,29 @@ export function OnboardingTour() {
 
   const steps = [
     {
-      title: '👋 Welcome to TradeAutopsy!',
+      title: 'Welcome to TradeAutopsy!',
       description: 'Let\'s take a quick tour to help you get started.',
-      emoji: '🚀'
+      icon: Rocket
     },
     {
-      title: '📊 View Your Analytics',
+      title: 'View Your Analytics',
       description: 'See your total P&L, win rate, and key metrics at a glance.',
-      emoji: '📈'
+      icon: BarChart3
     },
     {
-      title: '🧠 Get AI Insights',
+      title: 'Get AI Insights',
       description: 'Our AI analyzes your patterns and tells you exactly what to improve.',
-      emoji: '💡'
+      icon: Brain
     },
     {
-      title: '📋 Track All Trades',
+      title: 'Track All Trades',
       description: 'Filter and search through your complete trading history.',
-      emoji: '🔍'
+      icon: Search
     },
     {
-      title: '🎯 You\'re All Set!',
+      title: 'You\'re All Set!',
       description: 'Import your trades from Zerodha to get started.',
-      emoji: '✨'
+      icon: Sparkles
     }
   ]
 
@@ -76,7 +77,11 @@ export function OnboardingTour() {
 
         {/* Content */}
         <div className="text-center mb-8">
-          <div className="text-6xl mb-4">{step.emoji}</div>
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <step.icon size={40} className="text-blue-400" />
+            </div>
+          </div>
           <h2 className="text-2xl font-bold text-white mb-3">{step.title}</h2>
           <p className="text-gray-400">{step.description}</p>
         </div>

@@ -7,6 +7,8 @@ import 'react-calendar-heatmap/dist/styles.css'
 import { Trade } from '@/types/trade'
 import { aggregateTradesByDay, getColorClass } from '@/lib/calendar-utils'
 import { X } from 'lucide-react'
+import { PnLIndicator } from '@/components/PnLIndicator'
+import { formatINR } from '@/lib/formatters'
 
 interface PnLCalendarProps {
   trades: Trade[]
@@ -84,10 +86,10 @@ export default function PnLCalendar({ trades }: PnLCalendarProps) {
           return { 'data-tip': '' }
         }
         const date = new Date(value.date).toLocaleDateString('en-IN')
-        const pnl = (value.count || 0).toLocaleString('en-IN')
+        const pnl = formatINR(value.count || 0)
         const count = value.tradeCount || 0
         return {
-          'data-tip': `${date}: ₹${pnl} (${count} trades)`
+          'data-tip': `${date}: ${pnl} (${count} trades)`
         }
       }}
       onClick={(value: any) => {
@@ -135,14 +137,13 @@ export default function PnLCalendar({ trades }: PnLCalendarProps) {
                     day: 'numeric',
                   })}
                 </h3>
-                <p
-                  className={`text-2xl font-bold mt-2 ${
-                    selectedDay.count >= 0 ? 'text-emerald-400' : 'text-red-400'
-                  }`}
-                >
-                  {selectedDay.count >= 0 ? '+' : ''}₹
-                  {selectedDay.count.toLocaleString('en-IN')}
-                </p>
+                <div className="mt-2">
+                  <PnLIndicator 
+                    value={selectedDay.count || 0} 
+                    variant="text"
+                    size="lg"
+                  />
+                </div>
               </div>
               <button
                 onClick={() => setSelectedDay(null)}
@@ -164,18 +165,14 @@ export default function PnLCalendar({ trades }: PnLCalendarProps) {
                   <div>
                     <p className="font-medium text-white">{trade.tradingsymbol}</p>
                     <p className="text-xs text-gray-400">
-                      {trade.transaction_type} × {trade.quantity} @ ₹
-                      {(trade.average_price || 0).toFixed(2)}
+                      {trade.transaction_type} × {trade.quantity} @ {formatINR(trade.average_price || 0)}
                     </p>
                   </div>
-                  <p
-                    className={`font-semibold ${
-                      (trade.pnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
-                    }`}
-                  >
-                    {(trade.pnl || 0) >= 0 ? '+' : ''}₹
-                    {(trade.pnl || 0).toLocaleString('en-IN')}
-                  </p>
+                  <PnLIndicator 
+                    value={Number(trade.pnl || 0)} 
+                    variant="text"
+                    size="sm"
+                  />
                 </div>
               ))}
             </div>

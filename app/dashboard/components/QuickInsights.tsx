@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { AlertCircle, BookOpen } from 'lucide-react'
+import { AnimatedProgressBar } from './AnimatedProgressBar'
 
 interface QuickInsightsProps {
   journaledCount: number
@@ -25,12 +26,11 @@ export default function QuickInsights({ journaledCount, totalCount }: QuickInsig
             <p className="text-sm text-zinc-400">Journaled Trades</p>
             <p className="text-sm font-medium text-white">{journalPercentage}%</p>
           </div>
-          <div className="w-full bg-zinc-800 rounded-full h-2">
-            <div
-              className="bg-emerald-500 h-2 rounded-full transition-all"
-              style={{ width: `${journalPercentage}%` }}
-            />
-          </div>
+          <AnimatedProgressBar
+            value={Number(journalPercentage)}
+            barClassName="bg-emerald-500"
+            className="h-2"
+          />
           <p className="text-xs text-zinc-500 mt-2">
             {journaledCount} of {totalCount} trades
           </p>

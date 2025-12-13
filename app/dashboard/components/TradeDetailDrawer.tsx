@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Tag, Save } from 'lucide-react'
+import { X, Tag, Save, Mic } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface Trade {
   id: string
@@ -27,6 +28,7 @@ export default function TradeDetailDrawer({
   onClose,
   onSave,
 }: TradeDetailDrawerProps) {
+  const router = useRouter()
   const [note, setNote] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
@@ -55,6 +57,7 @@ export default function TradeDetailDrawer({
       setTagInput('')
     }
   }
+  
 
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter((t) => t !== tagToRemove))
@@ -87,12 +90,22 @@ export default function TradeDetailDrawer({
                 })}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push(`/dashboard/trades/${trade.id}`)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg text-sm transition-colors"
+                title="Open full trade detail page with audio journaling"
+              >
+                <Mic className="w-4 h-4" />
+                <span>Audio Journal</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4 mb-6">

@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -18,6 +19,18 @@ module.exports = {
         'accent-hover': '#2AA4B0',
         error: '#FF5459',
         warning: '#E68161',
+        profit: {
+          primary: '#22c55e',
+          light: '#4ade80',
+          bg: 'rgba(34, 197, 94, 0.1)',
+          border: 'rgba(34, 197, 94, 0.2)'
+        },
+        loss: {
+          primary: '#ef4444',
+          light: '#f87171',
+          bg: 'rgba(239, 68, 68, 0.1)',
+          border: 'rgba(239, 68, 68, 0.2)'
+        }
       },
     },
   },

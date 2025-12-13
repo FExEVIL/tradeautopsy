@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react'
 import { Trade } from '@/types/trade'
+import { PnLIndicator } from '@/components/PnLIndicator'
+import { Tag } from 'lucide-react'
 
 interface TagAnalyticsProps {
   trades: Trade[]
@@ -56,11 +58,11 @@ export function TagAnalytics({ trades }: TagAnalyticsProps) {
   }, [trades])
 
   if (tagStats.length === 0) {
-    return null // Don't show if no tags exist
+    return null
   }
 
   const topWinRate = [...tagStats]
-    .filter((s) => s.count >= 3) // At least 3 trades
+    .filter((s) => s.count >= 3)
     .sort((a, b) => b.winRate - a.winRate)
     .slice(0, 3)
 
@@ -70,38 +72,26 @@ export function TagAnalytics({ trades }: TagAnalyticsProps) {
     .slice(0, 3)
 
   return (
-    <div className="bg-neutral-900 rounded-xl border border-gray-800 p-6 mb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <svg
-          className="w-5 h-5 text-emerald-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-          />
-        </svg>
-        <h2 className="text-xl font-bold text-white">Behavioral Insights</h2>
+    <div className="p-6 rounded-xl bg-[#0A0A0A] border border-white/5">
+      <div className="flex items-center gap-2 mb-6">
+        <Tag className="w-5 h-5 text-emerald-400" />
+        <h3 className="text-lg font-semibold text-white">Tag Performance</h3>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* Most Common Tags */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-400 mb-3">
+          <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-3">
             Most Common Tags
-          </h3>
+          </h4>
           <div className="space-y-2">
             {tagStats.slice(0, 5).map((stat) => (
               <div
                 key={stat.tag}
-                className="flex items-center justify-between bg-black/30 rounded-lg p-2"
+                className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
               >
-                <span className="text-white text-sm">{stat.tag}</span>
-                <span className="text-gray-400 text-sm font-medium">
+                <span className="text-white text-sm font-medium">{stat.tag}</span>
+                <span className="text-gray-400 text-xs">
                   {stat.count} trades
                 </span>
               </div>
@@ -111,24 +101,27 @@ export function TagAnalytics({ trades }: TagAnalyticsProps) {
 
         {/* Best Performing Tags */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-400 mb-3">
+          <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-3">
             Best Performing Tags
-          </h3>
+          </h4>
           <div className="space-y-2">
             {topWinRate.length > 0 ? (
               topWinRate.map((stat) => (
                 <div
                   key={stat.tag}
-                  className="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2"
+                  className="flex items-center justify-between p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg"
                 >
-                  <span className="text-white text-sm">{stat.tag}</span>
-                  <span className="text-emerald-400 text-sm font-bold">
-                    {stat.winRate.toFixed(0)}%
-                  </span>
+                  <span className="text-white text-sm font-medium">{stat.tag}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400 text-sm font-bold">
+                      {stat.winRate.toFixed(0)}%
+                    </span>
+                    <PnLIndicator value={stat.totalPnL} size="sm" />
+                  </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-xs">
+              <p className="text-gray-500 text-xs p-3">
                 Need at least 3 trades per tag
               </p>
             )}
@@ -137,24 +130,27 @@ export function TagAnalytics({ trades }: TagAnalyticsProps) {
 
         {/* Worst Performing Tags */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-400 mb-3">
+          <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-3">
             Tags to Avoid
-          </h3>
+          </h4>
           <div className="space-y-2">
             {topLosers.length > 0 ? (
               topLosers.map((stat) => (
                 <div
                   key={stat.tag}
-                  className="flex items-center justify-between bg-red-500/5 border border-red-500/20 rounded-lg p-2"
+                  className="flex items-center justify-between p-3 bg-red-500/5 border border-red-500/20 rounded-lg"
                 >
-                  <span className="text-white text-sm">{stat.tag}</span>
-                  <span className="text-red-400 text-sm font-bold">
-                    {stat.winRate.toFixed(0)}%
-                  </span>
+                  <span className="text-white text-sm font-medium">{stat.tag}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-400 text-sm font-bold">
+                      {stat.winRate.toFixed(0)}%
+                    </span>
+                    <PnLIndicator value={stat.totalPnL} size="sm" />
+                  </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-xs">
+              <p className="text-gray-500 text-xs p-3">
                 Need at least 3 trades per tag
               </p>
             )}
@@ -163,7 +159,7 @@ export function TagAnalytics({ trades }: TagAnalyticsProps) {
       </div>
 
       {/* Summary Row */}
-      <div className="mt-4 pt-4 border-t border-gray-800 flex items-center gap-6 text-sm">
+      <div className="pt-4 border-t border-white/5 flex items-center gap-6 text-sm">
         <div>
           <span className="text-gray-400">Total Journaled: </span>
           <span className="text-white font-semibold">

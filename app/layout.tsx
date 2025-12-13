@@ -2,12 +2,129 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ToastProvider } from './dashboard/components/Toast'
+import { ThemeProvider } from '@/components/ThemeProvider'
+import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
+import { APP_URL } from '@/lib/constants'
 
 const inter = Inter({ subsets: ['latin'] })
 
+const siteUrl = APP_URL
+const siteName = 'TradeAutopsy'
+const siteDescription =
+  'Advanced AI-powered trading journal and analytics platform for stock traders, F&O traders, and day traders. Track, analyze, and improve your trading with pattern detection, AI coaching, and real-time alerts.'
+
 export const metadata: Metadata = {
-  title: 'TradeAutopsy - Stop Losing Money in Trading',
-  description: 'Automatically analyze your trades to discover why you lose money and what to fix. Built for Indian traders.',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'TradeAutopsy - Advanced Trading Journal & AI Analytics Platform',
+    template: '%s | TradeAutopsy',
+  },
+  description: siteDescription,
+  keywords: [
+    'trading journal',
+    'trading analytics',
+    'AI trading coach',
+    'stock trading software',
+    'F&O trading journal',
+    'day trading journal',
+    'intraday trading',
+    'pattern detection',
+    'trading rules engine',
+    'trading performance tracker',
+    'trading analytics software',
+    'best trading journal',
+    'professional trading software',
+    'trading discipline',
+    'trading psychology',
+    'trading risk management',
+    'position sizing calculator',
+    'Zerodha journal',
+    'trading software India',
+  ],
+  alternates: {
+    canonical: siteUrl,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: siteUrl,
+    siteName,
+    title: 'TradeAutopsy - Advanced Trading Journal & AI Analytics',
+    description: siteDescription,
+    images: [
+      {
+        url: `${siteUrl}/og-image-1200x630.png`,
+        width: 1200,
+        height: 630,
+        alt: 'TradeAutopsy - Trading Analytics Dashboard',
+        type: 'image/png',
+      },
+      {
+        url: `${siteUrl}/og-image-square.png`,
+        width: 800,
+        height: 800,
+        alt: 'TradeAutopsy Logo',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@tradeautopsy',
+    creator: '@tradeautopsy',
+    title: 'TradeAutopsy - Trading Analytics & AI Coach',
+    description: siteDescription,
+    images: [`${siteUrl}/twitter-image.png`],
+  },
+  applicationName: siteName,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: siteName,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+  },
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-16x16.png',
+    apple: '/apple-touch-icon.png',
+  },
+  appLinks: {
+    ios: {
+      url: 'https://apps.apple.com/app/tradeautopsy',
+      app_store_id: 'YOUR_APP_ID',
+    },
+    android: {
+      package: 'com.tradeautopsy.android',
+      app_name: 'TradeAutopsy',
+    },
+  },
+  verification: {
+    google: 'GOOGLE_VERIFICATION_CODE',
+    yandex: 'YANDEX_VERIFICATION_CODE',
+  },
+  category: 'Finance Technology',
+  other: {
+    'theme-color': '#000000',
+    'msapplication-TileColor': '#000000',
+    'dns-prefetch': 'https://fonts.googleapis.com',
+    'preconnect-fonts': 'https://fonts.gstatic.com',
+  },
 }
 
 export default function RootLayout({
@@ -16,11 +133,22 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={inter.className}>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            {children}
+            <KeyboardShortcuts />
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

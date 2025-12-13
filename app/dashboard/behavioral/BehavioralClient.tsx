@@ -1,145 +1,314 @@
 'use client'
 
+import { useState } from 'react'
 import { BehavioralInsight } from '@/lib/behavioral-analyzer'
+import type { Trade } from '@/types/trade'
+import {
+  Brain,
+  AlertTriangle,
+  CheckCircle2,
+  TrendingDown,
+  Target,
+  Zap,
+  ShieldAlert,
+  Clock,
+  Flame,
+  X,
+  ArrowRight
+} from 'lucide-react'
 
-interface BehavioralClientProps {
+type Props = {
   insights: BehavioralInsight[]
-  trades: any[]
+  trades: Trade[]
 }
 
-export default function BehavioralClient({ insights, trades }: BehavioralClientProps) {
-  const getInsightIcon = (type: string) => {
-    switch (type) {
-      case 'critical':
-        return (
-          <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-        )
-      case 'warning':
-        return (
-          <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-        )
-      case 'success':
-        return (
-          <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-        )
-      default:
-        return (
-          <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-        )
-    }
-  }
+// --- MODAL COMPONENT ---
+function TradeDrillDownModal({ 
+  insight, 
+  onClose 
+}: { 
+  insight: BehavioralInsight | null, 
+  onClose: () => void 
+}) {
+  if (!insight) return null
 
-  const getBorderColor = (type: string) => {
-    switch (type) {
-      case 'critical': return 'border-red-500/20'
-      case 'warning': return 'border-yellow-500/20'
-      case 'success': return 'border-emerald-500/20'
-      default: return 'border-blue-500/20'
-    }
-  }
+  const details = insight.data?.details || insight.data?.highVolumeDays || insight.data?.hourlyData || []
+  const isRevenge = insight.title.includes('Revenge')
+  const isTime = insight.title.includes('Time') || insight.title.includes('Trading at')
 
   return (
-  <div className="bg-black p-8 pb-20">
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Behavioral Analysis</h1>
-        <p className="text-gray-400">AI-powered insights based on {trades.length} trades</p>
-      </div>
-
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-neutral-900 rounded-xl p-6 border border-gray-800">
-            <p className="text-gray-400 text-sm mb-2">Critical Issues</p>
-            <p className="text-3xl font-bold text-red-400">
-              {insights.filter(i => i.type === 'critical').length}
-            </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-[#0F0F0F] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+        
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/5">
+          <div>
+            <h3 className="text-xl font-bold text-white">{insight.title}</h3>
+            <p className="text-sm text-gray-400 mt-1">{insight.description}</p>
           </div>
-          <div className="bg-neutral-900 rounded-xl p-6 border border-gray-800">
-            <p className="text-gray-400 text-sm mb-2">Warnings</p>
-            <p className="text-3xl font-bold text-yellow-400">
-              {insights.filter(i => i.type === 'warning').length}
-            </p>
-          </div>
-          <div className="bg-neutral-900 rounded-xl p-6 border border-gray-800">
-            <p className="text-gray-400 text-sm mb-2">Positive Patterns</p>
-            <p className="text-3xl font-bold text-emerald-400">
-              {insights.filter(i => i.type === 'success').length}
-            </p>
-          </div>
-          <div className="bg-neutral-900 rounded-xl p-6 border border-gray-800">
-            <p className="text-gray-400 text-sm mb-2">Total Insights</p>
-            <p className="text-3xl font-bold text-white">
-              {insights.length}
-            </p>
-          </div>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Insights Grid */}
-        <div className="space-y-4">
-          {insights.map((insight, idx) => (
-            <div 
-              key={idx} 
-              className={`bg-neutral-900 rounded-xl p-6 border ${getBorderColor(insight.type)}`}
-            >
-              <div className="flex items-start gap-4">
-                {getInsightIcon(insight.type)}
-                
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-2">{insight.title}</h3>
-                  <p className="text-gray-300 mb-3">{insight.description}</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="bg-black/40 rounded-lg p-4">
-                      <p className="text-gray-500 text-xs mb-1">Impact</p>
-                      <p className="text-white font-medium">{insight.impact}</p>
-                    </div>
-                    <div className="bg-black/40 rounded-lg p-4">
-                      <p className="text-gray-500 text-xs mb-1">Suggestion</p>
-                      <p className="text-white font-medium">{insight.suggestion}</p>
-                    </div>
-                  </div>
+        {/* Modal Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Contributing Events / Trades
+          </h4>
 
-                  {/* Show detailed data for revenge trading */}
-                  {insight.data?.details && insight.data.details.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-gray-400 text-sm mb-2">Revenge Trade Details:</p>
-                      <div className="space-y-2">
-                        {insight.data.details.slice(0, 3).map((detail: any, i: number) => (
-                          <div key={i} className="bg-black/60 rounded p-3 text-sm">
-                            <span className="text-white">{detail.symbol}</span>
-                            <span className="text-gray-500 mx-2">•</span>
-                            <span className="text-yellow-400">{detail.minutesAfterLoss} min after loss</span>
-                            <span className="text-gray-500 mx-2">•</span>
-                            <span className={detail.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                              ₹{detail.pnl?.toFixed(2)}
-                            </span>
-                          </div>
-                        ))}
+          {Array.isArray(details) && details.length > 0 ? (
+            <div className="space-y-2">
+              {details.map((item: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between p-4 bg-[#0A0A0A] border border-white/5 rounded-lg hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-2 h-2 rounded-full ${item.pnl > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <div>
+                      <div className="text-sm font-medium text-white">
+                        {item.symbol || item.hour || 'Trade Event'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {isRevenge && `${item.minutesAfterLoss} min after loss`}
+                        {isTime && `${item.trades} trades total`}
+                        {!isRevenge && !isTime && 'Traceable event'}
                       </div>
                     </div>
-                  )}
+                  </div>
+                  <div className={`text-sm font-mono ${item.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {item.pnl ? (item.pnl > 0 ? '+' : '') + `₹${item.pnl}` : '-'}
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <div className="p-8 text-center border border-dashed border-white/10 rounded-xl">
+              <p className="text-gray-500 text-sm">No specific trade details available for this pattern.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-6 border-t border-white/5 bg-[#0A0A0A] rounded-b-2xl flex justify-between items-center">
+          <div className="flex items-center gap-2 text-sm text-emerald-200">
+             <Zap className="w-4 h-4" />
+             <span>{insight.suggestion}</span>
+          </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// --- INSIGHT CARD COMPONENT ---
+type InsightCardProps = {
+  insight: BehavioralInsight
+  onClick: (insight: BehavioralInsight) => void
+}
+
+function InsightCard({ insight, onClick }: InsightCardProps) {
+  const config = {
+    critical: {
+      border: 'border-red-500/20',
+      bg: 'bg-gradient-to-br from-red-500/5 to-red-900/10',
+      iconBg: 'bg-red-500/10',
+      iconColor: 'text-red-400',
+      Icon: AlertTriangle,
+      fixColor: 'text-red-200',
+    },
+    warning: {
+      border: 'border-amber-500/20',
+      bg: 'bg-[#0A0A0A]',
+      iconBg: 'bg-amber-500/10',
+      iconColor: 'text-amber-400',
+      Icon: TrendingDown,
+      fixColor: 'text-amber-200',
+    },
+    success: {
+      border: 'border-green-500/20',
+      bg: 'bg-[#0A0A0A]',
+      iconBg: 'bg-green-500/10',
+      iconColor: 'text-green-400',
+      Icon: CheckCircle2,
+      fixColor: 'text-green-200',
+    },
+    info: {
+      border: 'border-emerald-500/20',
+      bg: 'bg-[#0A0A0A]',
+      iconBg: 'bg-emerald-500/10',
+      iconColor: 'text-emerald-400',
+      Icon: Brain,
+      fixColor: 'text-emerald-200',
+    },
+  }[insight.type]
+
+  const { Icon } = config
+
+  return (
+    <button
+      onClick={() => onClick(insight)}
+      className={`
+        group w-full text-left p-5 rounded-xl border transition-all
+        ${config.border} ${config.bg}
+        hover:border-white/20 hover:bg-white/5
+      `}
+    >
+      <div className="flex items-start gap-4">
+        <div className={`p-3 rounded-lg ${config.iconBg}`}>
+          <Icon className={`w-5 h-5 ${config.iconColor}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-white font-semibold text-base group-hover:text-white transition-colors flex items-center gap-2 mb-1">
+            {insight.title}
+            <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 -ml-1 group-hover:ml-0 transition-all text-emerald-400" />
+          </h3>
+          <p className="text-sm text-gray-400 line-clamp-2">{insight.description}</p>
+          <div className="mt-3">
+            <p className={`text-xs ${config.fixColor} font-medium`}>
+              {insight.suggestion}
+            </p>
+          </div>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+// --- MAIN CLIENT COMPONENT ---
+export default function BehavioralClient({ insights = [], trades = [] }: Props) {
+  const [selectedInsight, setSelectedInsight] = useState<BehavioralInsight | null>(null)
+
+  const safeInsights = insights || []
+  
+  const critical = safeInsights.filter((i) => i.type === 'critical')
+  const warnings = safeInsights.filter((i) => i.type === 'warning')
+  const positive = safeInsights.filter((i) => i.type === 'success')
+  const info = safeInsights.filter((i) => i.type === 'info')
+
+  const totalInsights = safeInsights.length
+  const negativeCount = critical.length * 2 + warnings.length
+  const score = Math.max(0, 100 - negativeCount * 10)
+
+  // Group insights into 3 sections
+  const emotionalPatterns = safeInsights.filter(i => 
+    i.title.toLowerCase().includes('fomo') ||
+    i.title.toLowerCase().includes('revenge') ||
+    i.title.toLowerCase().includes('overconfidence') ||
+    i.title.toLowerCase().includes('fear') ||
+    i.title.toLowerCase().includes('greed')
+  )
+
+  const disciplineExecution = safeInsights.filter(i =>
+    i.title.toLowerCase().includes('plan') ||
+    i.title.toLowerCase().includes('risk') ||
+    i.title.toLowerCase().includes('stop') ||
+    i.title.toLowerCase().includes('discipline') ||
+    i.title.toLowerCase().includes('execution')
+  )
+
+  const timeContext = safeInsights.filter(i =>
+    i.title.toLowerCase().includes('time') ||
+    i.title.toLowerCase().includes('hour') ||
+    i.title.toLowerCase().includes('day') ||
+    i.title.toLowerCase().includes('week') ||
+    i.title.toLowerCase().includes('pattern')
+  )
+
+  return (
+    <div className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-[1600px] mx-auto space-y-8">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between gap-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Brain className="w-6 h-6 text-purple-400" />
+              Behavioral Analysis
+            </h1>
+            <p className="text-gray-400 text-sm mt-1 max-w-2xl">
+              AI-powered insights based on {trades.length} trades. Click on any card to see the contributing trades.
+            </p>
+          </div>
+
+          {/* Discipline Score */}
+          <div className="flex items-center gap-4 bg-[#0A0A0A] border border-white/10 p-3 rounded-xl">
+            <div className="text-right">
+              <p className="text-xs text-gray-500 uppercase">Discipline Score</p>
+              <p className="text-2xl font-bold text-white">{score}</p>
+            </div>
+            <div className="w-16 h-16 rounded-full border-4 border-emerald-500/20 flex items-center justify-center">
+              <span className="text-emerald-400 font-bold">{score}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 1: Emotional Patterns */}
+        {emotionalPatterns.length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Flame className="w-5 h-5 text-orange-400" />
+              Emotional Patterns
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {emotionalPatterns.map((insight, idx) => (
+                <InsightCard key={idx} insight={insight} onClick={setSelectedInsight} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Section 2: Discipline & Execution */}
+        {disciplineExecution.length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-blue-400" />
+              Discipline & Execution
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {disciplineExecution.map((insight, idx) => (
+                <InsightCard key={idx} insight={insight} onClick={setSelectedInsight} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Section 3: Time & Context */}
+        {timeContext.length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-purple-400" />
+              Time & Context
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {timeContext.map((insight, idx) => (
+                <InsightCard key={idx} insight={insight} onClick={setSelectedInsight} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Fallback: Show all insights if no grouping worked */}
+        {emotionalPatterns.length === 0 && disciplineExecution.length === 0 && timeContext.length === 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {safeInsights.map((insight, idx) => (
+              <InsightCard key={idx} insight={insight} onClick={setSelectedInsight} />
+            ))}
+          </div>
+        )}
+
+        {safeInsights.length === 0 && (
+          <div className="text-center py-12">
+            <Brain className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400">No behavioral insights available yet.</p>
+            <p className="text-sm text-gray-500 mt-2">Add more trades to generate insights.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
+      <TradeDrillDownModal insight={selectedInsight} onClose={() => setSelectedInsight(null)} />
     </div>
   )
 }

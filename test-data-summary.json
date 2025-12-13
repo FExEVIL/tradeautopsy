@@ -1,0 +1,53 @@
+{
+  "total_trades": 441,
+  "date_range": {
+    "start": "2024-12-10",
+    "end": "2025-08-05"
+  },
+  "net_pnl": 53610.14,
+  "win_rate": 0.533,
+  "total_winners": 235,
+  "total_losers": 206,
+  "patterns_injected": {
+    "revenge_trading": 7,
+    "fomo": 12,
+    "overtrading_days": 2,
+    "win_streak_overconfidence": 3,
+    "loss_aversion": 30,
+    "weekend_warrior": 0,
+    "revenge_sizing": 8,
+    "news_trading": 12
+  },
+  "rule_violations": {
+    "time": 63,
+    "trade_count": 6,
+    "loss_limit": 100
+  },
+  "strategies": {
+    "scalping": {
+      "count": 182,
+      "win_rate": 0.5714285714285714,
+      "net_pnl": 40558.72000000002
+    },
+    "intraday": {
+      "count": 117,
+      "win_rate": 0.5470085470085471,
+      "net_pnl": 32261.15999999998
+    },
+    "swing": {
+      "count": 99,
+      "win_rate": 0.46464646464646464,
+      "net_pnl": -24823.300000000003
+    },
+    "positional": {
+      "count": 0,
+      "win_rate": 0,
+      "net_pnl": 0
+    },
+    "options": {
+      "count": 43,
+      "win_rate": 0.4883720930232558,
+      "net_pnl": 5613.560000000001
+    }
+  }
+}

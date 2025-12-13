@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { useState, useMemo, useTransition, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   BrainCircuit,
@@ -16,39 +16,37 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  X,
   LucideIcon,
+  Bot,
+  Target,
+  Shield,
+  FileText,
+  BarChart3,
+  Users,
+  UserCircle,
 } from 'lucide-react'
 
-// Define types for different kinds of sidebar items
 type BaseItem = {
   id: string
   label: string
   icon: LucideIcon
   href: string
+  isLink: true
 }
 
-type LinkItem = BaseItem & {
-  isLink: true
+type LinkItemWithStats = BaseItem & {
   stats?: string
   time?: string
-  // Add these optional fields so TypeScript is happy:
-  status?: string 
-  progress?: number
 }
 
-type StatusItem = BaseItem & {
-  isLink?: false
+type LinkItemWithProgress = BaseItem & {
   status: string
   progress: number
 }
 
-type MetricItem = BaseItem & {
-  isLink?: false
-  time: string
-  stats: string
-}
-
-type SidebarItem = LinkItem | StatusItem | MetricItem
+type SidebarItem = LinkItemWithStats | LinkItemWithProgress
 
 interface Section {
   title: string
@@ -60,15 +58,46 @@ interface CollapsibleSidebarProps {
   onSectionChange?: (section: string) => void
 }
 
-export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange }: CollapsibleSidebarProps) {
+export function CollapsibleSidebar({ activeSection, onSectionChange }: CollapsibleSidebarProps) {
+  // Initialize with false to match server-side rendering (prevents hydration mismatch)
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isHidden, setIsHidden] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+  
   const pathname = usePathname()
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
 
-  const sections: Section[] = [
+  // Load from localStorage after component mounts (client-side only)
+  useEffect(() => {
+    setIsMounted(true)
+    const collapsed = localStorage.getItem('sidebar_collapsed') === 'true'
+    const hidden = localStorage.getItem('taskbar_hidden') === 'true'
+    setIsCollapsed(collapsed)
+    setIsHidden(hidden)
+  }, [])
+
+  const handleToggleCollapse = () => {
+    const newState = !isCollapsed
+    setIsCollapsed(newState)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebar_collapsed', String(newState))
+    }
+  }
+
+  const handleToggleHide = () => {
+    const newState = !isHidden
+    setIsHidden(newState)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('taskbar_hidden', String(newState))
+    }
+  }
+
+  // Memoize sections to prevent re-creation on every render
+  const sections: Section[] = useMemo(() => [
     {
       title: 'IN PROGRESS',
       items: [
-        // Added isLink: true to make them clickable
         { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85, href: '/dashboard', icon: LayoutDashboard, isLink: true },
         { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/dashboard/behavioral', icon: BrainCircuit, isLink: true },
       ],
@@ -76,8 +105,13 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
     {
       title: 'READY FOR REVIEW',
       items: [
-        // Added isLink: true to make them clickable
         { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance', icon: TrendingUp, isLink: true },
+        { id: 'strategy-analysis', label: 'Strategy Analysis', time: '1m', stats: '4 strategies', href: '/dashboard/strategy-analysis', icon: BarChart3, isLink: true },
+        { id: 'comparisons', label: 'Comparisons', time: '2m', stats: 'Top 75%', href: '/dashboard/comparisons', icon: Users, isLink: true },
+        { id: 'patterns', label: 'Pattern Library', time: '1m', stats: '3 patterns', href: '/dashboard/patterns', icon: BrainCircuit, isLink: true },
+        { id: 'coach', label: 'AI Coach', time: '5m', stats: '2 insights', href: '/dashboard/coach', icon: Bot, isLink: true },
+        { id: 'risk', label: 'Risk Management', time: '3m', stats: 'Sharpe 1.2', href: '/dashboard/risk', icon: Shield, isLink: true },
+        { id: 'goals', label: 'Goals & Milestones', time: '1m', stats: '2 active', href: '/dashboard/goals', icon: Target, isLink: true },
         { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights', href: '/dashboard/charts', icon: LineChart, isLink: true },
         { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt', icon: AlertTriangle, isLink: true },
         { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional', icon: HeartPulse, isLink: true },
@@ -86,138 +120,201 @@ export function CollapsibleSidebar({ activeSection = 'overview', onSectionChange
     {
       title: 'MANAGE',
       items: [
-        // These were already links
         { id: 'calendar', label: 'Calendar', href: '/dashboard/calendar', isLink: true, icon: Calendar },
         { id: 'journal', label: 'Journal', href: '/dashboard/journal', isLink: true, icon: BookOpen },
         { id: 'trades', label: 'All Trades', href: '/dashboard/trades', isLink: true, icon: List },
+        { id: 'reports', label: 'Custom Reports', href: '/dashboard/reports', isLink: true, icon: FileText },
+        { id: 'rules', label: 'Trading Rules', href: '/dashboard/rules', isLink: true, icon: Shield },
+        { id: 'profiles', label: 'Profiles', href: '/dashboard/profiles', isLink: true, icon: UserCircle },
         { id: 'settings', label: 'Settings', href: '/dashboard/settings', isLink: true, icon: Settings },
+        { id: 'economic-calendar', label: 'Economic Calendar', href: '/dashboard/economic-calendar', isLink: true, icon: Calendar },
+        { id: 'morning-brief', label: 'Morning Brief', href: '/dashboard/morning-brief', isLink: true, icon: Target },
+        { id: 'brokers', label: 'Brokers', href: '/dashboard/brokers', isLink: true, icon: Settings },
+        { id: 'ml-insights', label: 'ML Insights', href: '/dashboard/settings/ml-insights', isLink: true, icon: BrainCircuit },
       ],
     },
-  ]
+  ], [])
 
+  // Don't render hidden state until after mount to prevent hydration mismatch
+  if (isMounted && isHidden) {
+    return (
+      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-50">
+        <button
+          onClick={handleToggleHide}
+          className="w-10 h-16 bg-gray-800 hover:bg-gray-700 rounded-r-lg flex items-center justify-center transition-colors"
+          title="Show Sidebar"
+        >
+          <ChevronRight className="w-5 h-5 text-gray-400" />
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div
       className={`${
-        isCollapsed ? 'w-20' : 'w-80'
-      } h-screen bg-[#1a1a1a] border-r border-gray-800 flex flex-col transition-all duration-300 relative`}
+        isCollapsed ? 'w-[72px] my-4' : 'w-80'
+      } h-screen bg-[#1b1912] flex flex-col transition-all duration-300 relative`}
+      style={{
+        borderRadius: isCollapsed ? '0 16px 16px 0' : '0',
+        height: isCollapsed ? 'calc(100vh - 32px)' : '100vh',
+      }}
     >
       {/* Header */}
-      <div className="p-6 border-b border-gray-800 flex items-center justify-between">
-        {!isCollapsed && (
+      <div className={`${isCollapsed ? 'p-4 pt-6' : 'p-6 pt-8'} flex items-center justify-center transition-all duration-300`}>
+        {!isCollapsed ? (
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold text-sm">T</span>
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+              <span className="text-black font-bold text-base">T</span>
             </div>
             <div>
               <h1 className="text-white font-semibold text-sm">TradeAutopsy</h1>
-              <p className="text-[10px] text-gray-600">Trading Analytics</p>
+              <p className="text-[10px] text-gray-500">Trading Analytics</p>
             </div>
           </Link>
+        ) : (
+          <Link href="/dashboard" className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+            <span className="text-black font-bold text-base">T</span>
+          </Link>
         )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1 hover:bg-gray-800 rounded-lg text-gray-400 transition-colors absolute -right-3 top-8 bg-[#1a1a1a] border border-gray-800"
-        >
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-3 py-4 scrollbar-hide">
         {sections.map((section, idx) => (
-          <div key={idx} className="mb-6">
+          <div key={idx} className={`${idx > 0 ? 'mt-6' : ''}`}>
             {!isCollapsed && (
-              <h3 className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-3 px-2">
+              <h3 className="text-[9px] font-semibold text-gray-600 uppercase tracking-wider mb-3 px-2">
                 {section.title} {section.items.length}
               </h3>
             )}
-            <div className="space-y-1">
+            <div className="space-y-2">
               {section.items.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
 
-                // Determine content based on item type
-                let content = null
-
-                if ('isLink' in item && item.isLink) {
-                  // Link items (Manage section)
-                  content = (
-                    <Link
-                      href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
-                        isActive
-                          ? 'bg-gray-800/70 text-white'
-                          : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
-                      }`}
-                    >
-                      <Icon className={`w-5 h-5 ${isActive ? 'text-blue-500' : 'text-gray-500 group-hover:text-gray-400'}`} />
-                      {!isCollapsed && <span className="font-medium text-sm">{item.label}</span>}
-                    </Link>
-                  )
-                } else {
-                  // Button items (Overview, Analytics, etc.)
-                  content = (
-                    <button
-                      onClick={() => onSectionChange?.(item.id)}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg transition-all group ${
-                        isActive
-                          ? 'bg-gray-800/70 text-white'
-                          : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon className={`w-5 h-5 ${isActive ? 'text-blue-500' : 'text-gray-500 group-hover:text-gray-400'}`} />
-                        {!isCollapsed && (
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="font-medium text-sm truncate">{item.label}</span>
-                              {'time' in item && <span className="text-[10px] text-gray-600 ml-2">{item.time}</span>}
-                            </div>
-                            
-                            {'progress' in item ? (
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px]">
-                                  <span className="text-gray-500">{item.status}</span>
-                                  <span className="text-gray-600">{item.progress}%</span>
-                                </div>
-                                <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-blue-500 transition-all duration-500"
-                                    style={{ width: `${item.progress}%` }}
-                                  />
-                                </div>
-                              </div>
-                            ) : (
-                              'stats' in item && (
-                                <div className="text-xs text-green-500/80 font-medium">
-                                  {item.stats}
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                  )
+                const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+                  if (item.href !== pathname) {
+                    e.preventDefault()
+                    startTransition(() => {
+                      router.push(item.href)
+                    })
+                  }
                 }
 
                 return (
-                  <div key={item.id} title={isCollapsed ? item.label : undefined}>
-                    {content}
-                  </div>
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={handleClick}
+                    className={`
+                      flex items-center rounded-xl transition-all group relative
+                      ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'}
+                      ${
+                        isActive
+                          ? 'bg-white/10 text-white'
+                          : 'text-gray-400 hover:bg-white/5 hover:text-gray-300'
+                      }
+                      ${isPending ? 'opacity-70' : ''}
+                    `}
+                    title={isCollapsed ? item.label : undefined}
+                  >
+                    {/* Icon */}
+                    <Icon
+                      className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0 ${
+                        isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
+                      }`}
+                    />
+
+                    {/* Content (only when expanded) */}
+                    {!isCollapsed && (
+                      <div className="flex-1 ml-3 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="font-medium text-sm truncate">{item.label}</span>
+                          {'time' in item && item.time && (
+                            <span className="text-[10px] text-gray-500 ml-2">{item.time}</span>
+                          )}
+                        </div>
+
+                        {'progress' in item ? (
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[10px]">
+                              <span className="text-gray-500">{item.status}</span>
+                              <span className="text-gray-600">{item.progress}%</span>
+                            </div>
+                            <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-blue-500 transition-all duration-500 rounded-full"
+                                style={{ width: `${item.progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          'stats' in item &&
+                          item.stats && (
+                            <div className="text-[11px] text-green-500/80 font-medium">{item.stats}</div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {/* Active indicator dot (collapsed mode) */}
+                    {isCollapsed && isActive && (
+                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-l-full" />
+                    )}
+                  </Link>
                 )
               })}
             </div>
           </div>
         ))}
+
+        {/* Toggle Buttons */}
+        <div className="mt-6 space-y-2">
+          <button
+            onClick={handleToggleCollapse}
+            className={`
+              flex items-center rounded-xl transition-all group relative w-full
+              ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'}
+              text-gray-400 hover:bg-white/5 hover:text-gray-300
+            `}
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="w-6 h-6 flex-shrink-0 text-gray-400 group-hover:text-gray-300" />
+            ) : (
+              <>
+                <ChevronLeft className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-gray-300" />
+                <div className="flex-1 ml-3 min-w-0">
+                  <span className="font-medium text-sm">Collapse</span>
+                </div>
+              </>
+            )}
+          </button>
+          {!isCollapsed && (
+            <button
+              onClick={handleToggleHide}
+              className="flex items-center px-3 py-2.5 rounded-xl transition-all group relative w-full text-gray-400 hover:bg-white/5 hover:text-gray-300"
+              title="Hide Sidebar"
+            >
+              <X className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-gray-300" />
+              <div className="flex-1 ml-3 min-w-0">
+                <span className="font-medium text-sm">Hide</span>
+              </div>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-800">
-        <button className={`flex items-center justify-center gap-2 w-full px-4 py-2 bg-gray-800/70 hover:bg-gray-700/70 text-gray-300 rounded-lg text-sm font-medium transition-colors ${isCollapsed ? 'px-2' : ''}`}>
-          {!isCollapsed ? 'Import New Trades' : '+'}
-        </button>
+      {/* Import New Trades Button */}
+<div className={`${isCollapsed ? 'px-3 pb-4' : 'p-4'}`}>
+        <Link
+          href="/dashboard/import"
+          className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-800/70 hover:bg-gray-700/70 text-gray-300 rounded-lg text-sm font-medium transition-colors ${isCollapsed ? 'px-3' : ''}`}
+        >
+          <Plus className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'}`} />
+          {!isCollapsed && <span>Import New Trades</span>}
+        </Link>
       </div>
     </div>
   )

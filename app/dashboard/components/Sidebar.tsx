@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { AnimatedProgressBar } from './AnimatedProgressBar'
 
 interface SidebarProps {
   activeSection?: string
@@ -138,17 +139,18 @@ export function Sidebar({ activeSection = 'overview', onSectionChange }: Sidebar
                     {'progress' in item ? (
                       <>
                         <p className="text-xs text-gray-600 mb-2 ml-4">{item.status}</p>
-                        <div className="ml-4 w-full h-1 bg-gray-900 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-blue-500 transition-all duration-500"
-                            style={{ width: `${item.progress}%` }}
+                        <div className="ml-4">
+                          <AnimatedProgressBar
+                            value={item.progress}
+                            barClassName="bg-blue-500"
+                            className="h-1"
                           />
                         </div>
                       </>
                     ) : (
                       <div className="flex items-center justify-between ml-4 mt-1">
                         <span className="text-xs text-green-400 font-medium">{item.stats}</span>
-                        <span className="text-xs text-gray-600">{item.time}</span>
+                        <span className="text-xs text-gray-600">{item.time}</span>ls -l app/dashboard/components/Sidebar.tsx
                       </div>
                     )}
                   </button>

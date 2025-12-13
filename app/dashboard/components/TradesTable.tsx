@@ -1,6 +1,8 @@
 import { classifyTradeStrategy } from '@/lib/strategy-classifier'
 import { Trade } from '@/types/trade'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { PnLIndicator } from '@/components/PnLIndicator'
+import { formatINR } from '@/lib/formatters'
 
 // ✅ ADD SORT TYPES
 type SortField = 'date' | 'symbol' | 'pnl' | 'quantity' | 'strategy' | null
@@ -202,14 +204,14 @@ export function TradesTable({
                 {trade.quantity}
               </td>
               <td className="py-4 px-4 text-right text-gray-300">
-                ₹{(trade.average_price || trade.entry_price || 0).toFixed(2)}
+                {formatINR(trade.average_price || trade.entry_price || 0)}
               </td>
               <td className="py-4 px-4 text-right">
-                <span className={`font-semibold ${
-                  (trade.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {(trade.pnl || 0) >= 0 ? '+' : ''}₹{(trade.pnl || 0).toFixed(2)}
-                </span>
+                <PnLIndicator 
+                  value={Number(trade.pnl || 0)} 
+                  variant="text"
+                  size="sm"
+                />
               </td>
               <td className="py-4 px-4 text-gray-400 text-sm">
                 {trade.trade_date 

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase-server'
+import { createClient } from '@/utils/supabase/server'
+import { getCurrentProfileId } from '@/lib/profile-utils'
 import TradesPageClient from './TradesPageClient'
 
 export default async function TradesPage() {
@@ -10,12 +11,21 @@ export default async function TradesPage() {
 
   if (!user) redirect('/login')
 
-  // fetch trades for this user
-  const { data: trades, error: tradesError } = await supabase
+  // Get current profile
+  const profileId = await getCurrentProfileId(user.id)
+
+  // fetch trades for this user (exclude soft-deleted, filter by profile)
+  let query = supabase
     .from('trades')
     .select('*')
     .eq('user_id', user.id)
-    .order('trade_date', { ascending: true })
+    .is('deleted_at', null)
+  
+  if (profileId) {
+    query = query.eq('profile_id', profileId)
+  }
+
+  const { data: trades, error: tradesError } = await query.order('trade_date', { ascending: true })
 
   if (tradesError) {
     console.error(tradesError)

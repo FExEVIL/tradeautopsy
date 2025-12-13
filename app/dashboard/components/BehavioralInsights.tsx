@@ -1,8 +1,17 @@
+import { isJournaled } from '@/lib/journal-utils'
+import { formatINR } from '@/lib/formatters'
+
 interface Trade {
-  trade_id: string
+  trade_id?: string
+  id?: string
   tradingsymbol: string
   pnl: number
   trade_date: string | null
+  notes?: string | null
+  execution_rating?: number | null
+  setup?: string | null
+  mistakes?: string[] | null
+  screenshot_url?: string | null
 }
 
 interface BehavioralInsightsProps {
@@ -11,6 +20,9 @@ interface BehavioralInsightsProps {
 
 export function BehavioralInsights({ trades }: BehavioralInsightsProps) {
   if (trades.length === 0) return null
+
+  // Filter journaled trades using unified isJournaled logic
+  const journaledTrades = trades.filter(isJournaled)
 
   const sortedTrades = [...trades].sort((a, b) => {
     const dateA = a.trade_date ? new Date(a.trade_date).getTime() : 0
@@ -157,8 +169,13 @@ export function BehavioralInsights({ trades }: BehavioralInsightsProps) {
               <h3 className="text-lg font-bold text-green-400">Best Performing</h3>
             </div>
             <p className="text-2xl font-bold text-white mb-1">{bestSymbol.symbol}</p>
-            <p className="text-xl font-bold text-green-400 mb-2">₹{bestSymbol.pnl.toFixed(2)}</p>
+            <p className="text-xl font-bold text-green-400 mb-2">{formatINR(bestSymbol.pnl)}</p>
             <p className="text-sm text-gray-400">{bestSymbol.count} trades</p>
+            {journaledTrades.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                {journaledTrades.filter(t => t.tradingsymbol === bestSymbol.symbol).length} journaled
+              </p>
+            )}
           </div>
         )}
 
@@ -174,8 +191,13 @@ export function BehavioralInsights({ trades }: BehavioralInsightsProps) {
               <h3 className="text-lg font-bold text-red-400">Worst Performing</h3>
             </div>
             <p className="text-2xl font-bold text-white mb-1">{worstSymbol.symbol}</p>
-            <p className="text-xl font-bold text-red-400 mb-2">₹{worstSymbol.pnl.toFixed(2)}</p>
+            <p className="text-xl font-bold text-red-400 mb-2">{formatINR(worstSymbol.pnl)}</p>
             <p className="text-sm text-gray-400">{worstSymbol.count} trades - avoid this symbol</p>
+            {journaledTrades.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                {journaledTrades.filter(t => t.tradingsymbol === worstSymbol.symbol).length} journaled
+              </p>
+            )}
           </div>
         )}
       </div>

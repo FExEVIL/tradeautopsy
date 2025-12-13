@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Trade } from '@/types/trade'
+import { formatINR } from '@/lib/formatters'
 
 interface ExportButtonProps {
   trades: Trade[]
@@ -34,8 +35,8 @@ export function ExportButton({ trades, label = 'Export' }: ExportButtonProps) {
       trade.transaction_type,
       trade.product || 'N/A',
       trade.quantity,
-      trade.average_price || 0,
-      trade.pnl || 0,
+      trade.average_price ? formatINR(trade.average_price) : '₹0',
+      trade.pnl ? formatINR(trade.pnl) : '₹0',
       trade.journal_note?.replace(/"/g, '""') || '', // Escape quotes
       trade.journal_tags?.join('; ') || '',
     ])
@@ -84,12 +85,26 @@ export function ExportButton({ trades, label = 'Export' }: ExportButtonProps) {
     const wins = trades.filter((t) => (t.pnl || 0) > 0).length
     const losses = trades.filter((t) => (t.pnl || 0) < 0).length
     const winRate = trades.length > 0 ? (wins / trades.length) * 100 : 0
+    const avgTrade = trades.length > 0 ? totalPnL / trades.length : 0
+    const bestTrade = Math.max(...trades.map(t => t.pnl || 0))
+    const worstTrade = Math.min(...trades.map(t => t.pnl || 0))
 
-    doc.text(
-      `Total P&L: ₹${totalPnL.toFixed(2)} | Trades: ${trades.length} | Win Rate: ${winRate.toFixed(1)}%`,
-      14,
-      30
-    )
+    doc.setFont('helvetica', 'bold')
+    doc.text('Summary Statistics', 14, 30)
+    doc.setFont('helvetica', 'normal')
+    
+    const stats = [
+      `Total P&L: ${formatINR(totalPnL)}`,
+      `Total Trades: ${trades.length} (${wins} wins, ${losses} losses)`,
+      `Win Rate: ${winRate.toFixed(1)}%`,
+      `Average Trade: ${formatINR(avgTrade)}`,
+      `Best Trade: ${formatINR(bestTrade)}`,
+      `Worst Trade: ${formatINR(worstTrade)}`,
+    ]
+    
+    stats.forEach((stat, idx) => {
+      doc.text(stat, 14, 38 + idx * 6)
+    })
 
     // Table data
     const tableData = trades.map((trade) => [
@@ -97,17 +112,31 @@ export function ExportButton({ trades, label = 'Export' }: ExportButtonProps) {
       trade.tradingsymbol,
       trade.transaction_type,
       trade.quantity,
-      `₹${(trade.average_price || 0).toFixed(2)}`,
-      `₹${(trade.pnl || 0).toFixed(2)}`,
+      formatINR(trade.average_price || 0),
+      formatINR(trade.pnl || 0),
       trade.journal_tags?.join(', ') || '-',
     ])
 
     autoTable(doc, {
       head: [['Date', 'Symbol', 'Type', 'Qty', 'Price', 'P&L', 'Tags']],
       body: tableData,
-      startY: 40,
+      startY: 75,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [16, 185, 129] },
+      columnStyles: {
+        5: { cellWidth: 40 }, // P&L column wider
+      },
+      didParseCell: (data: any) => {
+        // Color code P&L column
+        if (data.column.index === 5 && data.cell.text) {
+          const pnlValue = parseFloat(data.cell.text.replace(/[₹,]/g, ''))
+          if (pnlValue > 0) {
+            data.cell.styles.textColor = [34, 197, 94] // green
+          } else if (pnlValue < 0) {
+            data.cell.styles.textColor = [239, 68, 68] // red
+          }
+        }
+      },
     })
 
     // Add notes section if trades have notes

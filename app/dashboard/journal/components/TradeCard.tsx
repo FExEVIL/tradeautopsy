@@ -12,10 +12,11 @@ import {
   X,
 } from 'lucide-react'
 import type { Trade } from '@/lib/behavioral/types'
-
 import { formatCurrency } from '@/lib/behavioral/utils'
 import EmotionPicker from './EmotionPicker'
+import { AudioRecorder } from './AudioRecorder'
 import { createBrowserClient } from '@supabase/ssr'
+import { compressImage, shouldCompressImage } from '@/lib/image-compression'
 
 
 
@@ -78,31 +79,50 @@ const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (JPEG, PNG, or WebP)')
+      return
+    }
+
     try {
       setUploading(true)
 
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      console.log('upload user', user?.id)
+      
       if (!user) {
         console.error('No auth user for upload; RLS sees anonymous')
+        alert('Authentication error. Please log in again.')
         setUploading(false)
         return
       }
 
-      const extension = file.name.split('.').pop()
-      const fileName = `${trade.user_id}/${trade.id}-${Date.now()}.${extension}`
+      // Compress image if needed (prevents 413 errors)
+      let fileToUpload = file
+      if (shouldCompressImage(file)) {
+        try {
+          fileToUpload = await compressImage(file)
+        } catch (compressError) {
+          console.warn('Compression failed, uploading original:', compressError)
+          // Continue with original file if compression fails
+        }
+      }
+
+      const extension = fileToUpload.name.split('.').pop() || 'jpg'
+      const fileName = `${user.id}/${trade.id}-${Date.now()}.${extension}`
 
       const { data, error } = await supabase.storage
         .from('trade-screenshots')
-        .upload(fileName, file, {
+        .upload(fileName, fileToUpload, {
           cacheControl: '3600',
           upsert: true,
         })
 
       if (error) {
         console.error('Upload error', error)
+        alert(`Upload failed: ${error.message}`)
         setUploading(false)
         return
       }
@@ -121,7 +141,13 @@ const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,
       if (!updateError) {
         setScreenshotUrl(publicUrl)
         onUpdate()
+      } else {
+        console.error('Update error', updateError)
+        alert('Failed to save screenshot URL')
       }
+    } catch (err) {
+      console.error('Upload error:', err)
+      alert(`Upload error: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setUploading(false)
       if (fileInputRef.current) {
@@ -185,6 +211,15 @@ const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,
                      focus:ring-2 focus:ring-[#32B8C6] focus:border-transparent resize-none"
           rows={3}
         />
+        <div className="mt-2">
+          <AudioRecorder 
+            tradeId={trade.id}
+            onComplete={(summary) => {
+              setNotes(summary)
+              onUpdate()
+            }}
+          />
+        </div>
       </div>
 
       <div className="mb-3">

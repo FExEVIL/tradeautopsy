@@ -1,4 +1,5 @@
 import { classifyTradeStrategy } from '@/lib/strategy-classifier'
+import { Clock, Package, Waves, Target } from 'lucide-react'
 
 interface Trade {
   id: string
@@ -20,12 +21,14 @@ interface MobileTradeCardProps {
 export function MobileTradeCard({ trade }: MobileTradeCardProps) {
   const strategy = classifyTradeStrategy(trade)
   
-  const strategyIcons: Record<string, string> = {
-    'Intraday': '⚡',
-    'Delivery': '📦',
-    'Swing': '🔄',
-    'Options': '⚙️'
+  const strategyIcons: Record<string, typeof Clock> = {
+    'Intraday': Clock,
+    'Delivery': Package,
+    'Swing': Waves,
+    'Options': Target
   }
+  
+  const StrategyIcon = strategyIcons[strategy] || Clock
 
   return (
     <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4 active:scale-98 transition-transform">
@@ -40,8 +43,9 @@ export function MobileTradeCard({ trade }: MobileTradeCardProps) {
             }`}>
               {trade.transaction_type}
             </span>
-            <span className="text-xs px-2 py-1 rounded-md font-medium bg-gray-800 text-gray-400">
-              {strategyIcons[strategy]} {strategy}
+            <span className="text-xs px-2 py-1 rounded-md font-medium bg-gray-800 text-gray-400 flex items-center gap-1">
+              <StrategyIcon size={12} className="text-gray-400" />
+              {strategy}
             </span>
           </div>
         </div>

@@ -1,0 +1,141 @@
+import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
+import DateRangeFilter from './components/DateRangeFilter'
+import { PnLIndicator } from '@/components/PnLIndicator'
+import { getJournalProgress } from '@/lib/journal-utils'
+import { calculateCumulativePnL } from '@/lib/calculations'
+import { formatINR } from '@/lib/formatters'
+
+export default async function DashboardPage({ 
+  searchParams 
+}: { 
+  searchParams: { range?: string, start?: string, end?: string } 
+}) {
+  const supabase = createClient()
+  
+  // ✅ FIXED: Proper error handling for auth
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  
+  if (authError || !user) {
+    redirect('/login')
+  }
+  
+  // Date range from URL params (with defaults)
+  const now = new Date()
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const startDate = searchParams.start ? new Date(searchParams.start) : thirtyDaysAgo
+  const endDate = searchParams.end ? new Date(searchParams.end) : now
+  
+  // Fetch trades with date filter
+  const { data: trades = [], error: tradesError } = await supabase
+    .from('trades')
+    .select('*')
+    .eq('user_id', user.id)
+    .gte('trade_date', startDate.toISOString().split('T')[0])
+    .lte('trade_date', endDate.toISOString().split('T')[0])
+    .order('trade_date', { ascending: true })
+  
+  if (tradesError) {
+    console.error('Trades fetch error:', tradesError)
+  }
+  
+  // Calculate stats using new utilities
+  const netPnL = trades.reduce((sum, trade) => sum + parseFloat(trade.pnl || '0'), 0)
+  const cumulativeData = calculateCumulativePnL(trades)
+  const progress = await getJournalProgress(user.id)
+  
+  // Win rate calculation
+  const winCount = trades.filter(t => parseFloat(t.pnl || '0') > 0).length
+  const winRate = trades.length > 0 ? Math.round((winCount / trades.length) * 100) : 0
+  
+  return (
+    <div className="space-y-8 p-6 max-w-7xl mx-auto">
+      {/* Header with Date Filter */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+          <p className="text-gray-400 mt-1">
+            {format(startDate, 'MMM dd')} - {format(endDate, 'MMM dd, yyyy')}
+          </p>
+        </div>
+        <DateRangeFilter />
+      </div>
+      
+      {/* Hero Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Net P&L */}
+        <div className="p-8 rounded-2xl bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A] border border-white/5 lg:col-span-2">
+          <div className="text-sm text-gray-400 uppercase tracking-wider mb-4">Net P&L</div>
+          <PnLIndicator value={netPnL} variant="text" size="lg" />
+          <div className="text-sm text-gray-400 mt-2">{formatINR(Math.abs(netPnL))}</div>
+        </div>
+        
+        {/* Journal Progress */}
+        <div className="p-8 rounded-2xl bg-[#0F0F0F] border border-white/5">
+          <div className="text-sm text-gray-400 uppercase tracking-wider mb-4">Journal Progress</div>
+          <div className="text-3xl font-bold text-white mb-2">{progress.journaled}/{progress.total}</div>
+          <div className="w-full bg-gray-800 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-green-500 to-green-400 h-2 rounded-full transition-all"
+              style={{ width: `${progress.percentage}%` }}
+            />
+          </div>
+          <div className="text-sm text-green-400 mt-1 font-mono">{progress.percentage}%</div>
+        </div>
+      </div>
+      
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="p-6 rounded-xl bg-[#0A0A0A] border border-white/5">
+          <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Win Rate</div>
+          <div className="text-2xl font-mono font-bold text-white">{winRate}%</div>
+        </div>
+        <div className="p-6 rounded-xl bg-[#0A0A0A] border border-white/5">
+          <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Total Trades</div>
+          <div className="text-2xl font-mono font-bold text-white">{trades.length}</div>
+        </div>
+        <div className="p-6 rounded-xl bg-[#0A0A0A] border border-white/5">
+          <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Avg Trade</div>
+          <div className="text-2xl font-mono font-bold text-white">
+            {formatINR(netPnL / Math.max(trades.length, 1))}
+          </div>
+        </div>
+        <div className="p-6 rounded-xl bg-[#0A0A0A] border border-white/5">
+          <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Best Day</div>
+          <PnLIndicator 
+            value={Math.max(...trades.map(t => parseFloat(t.pnl || '0')), 0)} 
+            size="lg" 
+          />
+        </div>
+      </div>
+      
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="p-6 rounded-2xl bg-[#0F0F0F] border border-white/5">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            Cumulative P&L <span className="text-xs text-green-400">✅ FIXED</span>
+          </h3>
+          <div className="h-80 bg-white/5 rounded-xl p-4">
+            <pre className="text-xs text-gray-400 overflow-auto max-h-72">
+{JSON.stringify(cumulativeData.slice(-10), null, 2)}
+            </pre>
+          </div>
+        </div>
+        <div className="p-6 rounded-2xl bg-[#0F0F0A] border border-white/5">
+          <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+          <div className="space-y-3">
+            {trades.slice(0, 5).map(trade => (
+              <div key={trade.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                <div>
+                  <div className="font-mono text-sm">{trade.symbol}</div>
+                  <div className="text-xs text-gray-400">{new Date(trade.trade_date).toLocaleDateString()}</div>
+                </div>
+                <PnLIndicator value={parseFloat(trade.pnl || '0')} size="sm" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

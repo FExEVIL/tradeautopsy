@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import { AudioRecorder, type AudioJournalData } from '@/components/AudioRecorder'
+import { AudioPlayer } from '@/components/AudioPlayer'
 
 interface Trade {
   id: string
@@ -17,10 +19,29 @@ interface Trade {
   notes?: string
 }
 
-export function TradeDetailClient({ trade }: { trade: Trade }) {
+interface AudioJournal {
+  id: string
+  audio_url: string
+  transcript: string
+  summary: string
+  duration: number
+  emotions: string[]
+  insights: string[]
+  tags: string[]
+}
+
+export function TradeDetailClient({ 
+  trade, 
+  audioJournal: initialAudioJournal 
+}: { 
+  trade: Trade
+  audioJournal: AudioJournal | null
+}) {
   const [editing, setEditing] = useState(false)
   const [notes, setNotes] = useState(trade.notes || '')
   const [saving, setSaving] = useState(false)
+  const [audioJournal, setAudioJournal] = useState<AudioJournal | null>(initialAudioJournal)
+  const [refreshing, setRefreshing] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -43,16 +64,78 @@ export function TradeDetailClient({ trade }: { trade: Trade }) {
   async function handleDelete() {
     if (!confirm('Are you sure you want to delete this trade?')) return
 
-    const { error } = await supabase
-      .from('trades')
-      .delete()
-      .eq('id', trade.id)
+    try {
+      const response = await fetch(`/api/trades/${trade.id}`, {
+        method: 'DELETE',
+      })
 
-    if (error) {
+      if (response.ok) {
+        alert('Trade deleted!')
+        router.push('/dashboard/trades')
+      } else {
+        const data = await response.json()
+        alert('Error deleting trade: ' + (data.error || 'Unknown error'))
+      }
+    } catch (error) {
       alert('Error deleting trade')
-    } else {
-      alert('Trade deleted!')
-      router.push('/dashboard/trades')
+    }
+  }
+
+  const handleAudioSave = async (audioData: AudioJournalData) => {
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioData.audioBlob)
+      formData.append('trade_id', trade.id)
+      formData.append('transcript', audioData.transcript)
+      formData.append('summary', audioData.summary)
+      formData.append('duration', audioData.duration.toString())
+      formData.append('emotions', JSON.stringify(audioData.emotions))
+      formData.append('insights', JSON.stringify(audioData.insights))
+      formData.append('tags', JSON.stringify(audioData.tags))
+
+      const response = await fetch('/api/audio-journal/save', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save audio journal')
+      }
+
+      const result = await response.json()
+      
+      // Update local state
+      setAudioJournal(result.entry)
+      alert('Audio journal saved successfully!')
+      
+      // Refresh page to get updated data
+      router.refresh()
+    } catch (error: any) {
+      alert('Error saving audio journal: ' + (error.message || 'Unknown error'))
+      console.error('Save error:', error)
+    }
+  }
+
+  const handleAudioDelete = async () => {
+    if (!confirm('Are you sure you want to delete this audio journal?')) return
+
+    try {
+      const response = await fetch(`/api/audio-journal/delete?trade_id=${trade.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setAudioJournal(null)
+        alert('Audio journal deleted!')
+        router.refresh()
+      } else {
+        const data = await response.json()
+        alert('Error deleting audio journal: ' + (data.error || 'Unknown error'))
+      }
+    } catch (error) {
+      alert('Error deleting audio journal')
+      console.error('Delete error:', error)
     }
   }
 
@@ -122,6 +205,34 @@ export function TradeDetailClient({ trade }: { trade: Trade }) {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Audio Journal Section */}
+        <div className="bg-neutral-900 rounded-xl p-8 border border-gray-800 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              Audio Journal
+              {audioJournal && (
+                <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
+                  🎙️ Recorded
+                </span>
+              )}
+            </h2>
+          </div>
+
+          {!audioJournal ? (
+            <AudioRecorder tradeId={trade.id} onSave={handleAudioSave} />
+          ) : (
+            <AudioPlayer
+              audioUrl={audioJournal.audio_url}
+              transcript={audioJournal.transcript}
+              summary={audioJournal.summary}
+              duration={audioJournal.duration}
+              emotions={audioJournal.emotions || []}
+              tags={audioJournal.tags || []}
+              onDelete={handleAudioDelete}
+            />
+          )}
         </div>
 
         {/* Notes Section */}
