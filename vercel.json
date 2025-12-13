@@ -3,14 +3,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["bom1"],
-  "domains": ["www.tradeautopsy.in", "tradeautopsy.in"],
-  "env": {
-    "NEXT_PUBLIC_APP_URL": "https://www.tradeautopsy.in",
-    "NEXT_PUBLIC_API_BASE_URL": "https://www.tradeautopsy.in/api",
-    "NEXT_PUBLIC_AUTH_REDIRECT_URL": "https://www.tradeautopsy.in/auth/callback",
-    "NEXT_PUBLIC_EMAIL_CONFIRMATION_URL": "https://www.tradeautopsy.in/auth/callback",
-    "NEXT_PUBLIC_PASSWORD_RESET_URL": "https://www.tradeautopsy.in/auth/reset-password"
-  }
+  "regions": ["bom1"]
 }
 
