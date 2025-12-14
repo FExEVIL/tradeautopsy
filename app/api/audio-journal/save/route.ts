@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { getCurrentProfileId } from '@/lib/profile-utils'
 
+/**
+ * Save audio journal entry with all AI analysis data
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -11,137 +15,97 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData()
-    const audioBlob = formData.get('audio') as Blob
-    const tradeId = formData.get('trade_id') as string
-    const transcript = formData.get('transcript') as string
-    const summary = formData.get('summary') as string
-    const duration = parseInt(formData.get('duration') as string)
-    const emotions = formData.get('emotions') as string // JSON string
-    const insights = formData.get('insights') as string // JSON string
-    const tags = formData.get('tags') as string // JSON string
+    const audio = formData.get('audio') as File
+    const tradeId = formData.get('trade_id')?.toString() || null
+    const transcript = formData.get('transcript')?.toString() || ''
+    const summary = formData.get('summary')?.toString() || ''
+    const duration = parseInt(formData.get('duration')?.toString() || '0')
+    const autoTags = JSON.parse(formData.get('auto_tags')?.toString() || '[]')
+    const detectedEmotions = JSON.parse(formData.get('detected_emotions')?.toString() || '[]')
+    const detectedMistakes = JSON.parse(formData.get('detected_mistakes')?.toString() || '[]')
+    const suggestedGoals = JSON.parse(formData.get('suggested_goals')?.toString() || '[]')
+    const aiAnalysis = JSON.parse(formData.get('ai_analysis')?.toString() || '{}')
 
-    if (!audioBlob || !tradeId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (!audio) {
+      return NextResponse.json({ error: 'Audio file required' }, { status: 400 })
     }
 
-    // Verify trade belongs to user
-    const { data: trade, error: tradeError } = await supabase
-      .from('trades')
-      .select('id, user_id')
-      .eq('id', tradeId)
-      .eq('user_id', user.id)
-      .single()
-
-    if (tradeError || !trade) {
-      return NextResponse.json({ error: 'Trade not found' }, { status: 404 })
-    }
+    // Get current profile
+    const profileId = await getCurrentProfileId(user.id)
 
     // Upload audio to Supabase Storage
-    const fileName = `${user.id}/${tradeId}/${Date.now()}.webm`
-    
+    const fileName = `audio-${Date.now()}-${audio.name}`
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('audio-journals')
-      .upload(fileName, audioBlob, {
-        contentType: audioBlob.type || 'audio/webm',
-        upsert: false,
+      .from('audio-journal')
+      .upload(`${user.id}/${fileName}`, audio, {
+        contentType: audio.type,
+        upsert: false
       })
 
     if (uploadError) {
-      console.error('[Audio Journal] Storage upload error:', uploadError)
-      return NextResponse.json({ error: 'Failed to upload audio: ' + uploadError.message }, { status: 500 })
+      console.error('[Save] Upload error:', uploadError)
+      return NextResponse.json({ error: 'Failed to upload audio' }, { status: 500 })
     }
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('audio-journals')
-      .getPublicUrl(fileName)
+      .from('audio-journal')
+      .getPublicUrl(`${user.id}/${fileName}`)
 
-    // Parse JSON arrays
-    let emotionsArray: string[] = []
-    let insightsArray: string[] = []
-    let tagsArray: string[] = []
-    
-    try {
-      if (emotions) emotionsArray = JSON.parse(emotions)
-      if (insights) insightsArray = JSON.parse(insights)
-      if (tags) tagsArray = JSON.parse(tags)
-    } catch (e) {
-      console.warn('[Audio Journal] Failed to parse JSON arrays:', e)
-    }
-
-    // Save to database (upsert in case entry already exists)
-    // First check if entry exists
-    const { data: existingEntry } = await supabase
+    // Save to database with all AI analysis data
+    const { data: entry, error: dbError } = await supabase
       .from('audio_journal_entries')
-      .select('id')
-      .eq('trade_id', tradeId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    let journalEntry
-    let dbError
-
-    if (existingEntry) {
-      // Update existing entry
-      const { data, error } = await supabase
-        .from('audio_journal_entries')
-        .update({
-          audio_url: publicUrl,
-          transcript: transcript || '',
-          summary: summary || null,
-          duration: duration || 0,
-          emotions: emotionsArray,
-          insights: insightsArray,
-          tags: tagsArray,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingEntry.id)
-        .select()
-        .single()
-      
-      journalEntry = data
-      dbError = error
-    } else {
-      // Insert new entry
-      const { data, error } = await supabase
-        .from('audio_journal_entries')
-        .insert({
-          user_id: user.id,
-          trade_id: tradeId,
-          audio_url: publicUrl,
-          transcript: transcript || '',
-          summary: summary || null,
-          duration: duration || 0,
-          emotions: emotionsArray,
-          insights: insightsArray,
-          tags: tagsArray,
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single()
-      
-      journalEntry = data
-      dbError = error
-    }
+      .insert({
+        user_id: user.id,
+        profile_id: profileId,
+        trade_id: tradeId,
+        audio_url: publicUrl,
+        transcript: transcript,
+        ai_summary: summary,
+        duration_seconds: duration,
+        auto_tags: autoTags,
+        detected_emotions: detectedEmotions,
+        detected_mistakes: detectedMistakes,
+        suggested_goals: suggestedGoals,
+        ai_analysis: aiAnalysis
+      })
+      .select()
+      .single()
 
     if (dbError) {
-      console.error('[Audio Journal] Database error:', dbError)
-      return NextResponse.json({ error: 'Failed to save journal entry: ' + dbError.message }, { status: 500 })
+      console.error('[Save] Database error:', dbError)
+      return NextResponse.json({ 
+        error: 'Failed to save audio journal entry',
+        details: dbError.message 
+      }, { status: 500 })
     }
 
-    // Update trade with audio flag
-    await supabase
-      .from('trades')
-      .update({ has_audio_journal: true })
-      .eq('id', tradeId)
+    // Update trade if tradeId provided
+    if (tradeId && summary) {
+      await supabase
+        .from('trades')
+        .update({ 
+          journal_note: summary,
+          has_audio_journal: true
+        })
+        .eq('id', tradeId)
+        .eq('user_id', user.id)
+    }
+
+    console.log('[Save] Audio journal entry saved:', entry?.id)
 
     return NextResponse.json({
       success: true,
-      entry: journalEntry,
+      entryId: entry?.id,
+      summary,
+      autoTags
     })
 
   } catch (error: any) {
-    console.error('[Audio Journal] Save error:', error)
-    return NextResponse.json({ error: error.message || 'Unknown error' }, { status: 500 })
+    console.error('[Save] Error:', error)
+    return NextResponse.json(
+      { error: 'Failed to save audio journal', details: error.message },
+      { status: 500 }
+    )
   }
 }

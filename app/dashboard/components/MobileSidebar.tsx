@@ -75,18 +75,22 @@ export function MobileSidebar({ activeSection = 'overview', onSectionChange }: M
       </div>
 
       {/* Overlay */}
-      {isOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      <div
+        className={`lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-200 ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsOpen(false)}
+      />
 
       {/* Sidebar Drawer */}
       <div
-        className={`lg:hidden fixed top-0 left-0 bottom-0 w-80 bg-[#1a1a1a] border-r border-gray-800 z-50 transform transition-transform duration-300 ${
+        className={`lg:hidden fixed top-0 left-0 bottom-0 w-80 bg-[#1a1a1a] border-r border-gray-800 z-50 transition-transform duration-200 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          willChange: 'transform',
+        }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}

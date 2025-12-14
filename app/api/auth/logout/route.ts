@@ -1,18 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies()
+  try {
+    const supabase = await createClient()
 
-  // Clear WorkOS cookies
-  cookieStore.delete('workos_user_id')
-  cookieStore.delete('workos_profile_id')
-  cookieStore.delete('workos_session')
+    // Sign out from Supabase
+    await supabase.auth.signOut()
 
-  // Clear Supabase session
-  const supabase = await createClient()
-  await supabase.auth.signOut()
+    // Create response
+    const response = NextResponse.json({ success: true })
 
-  return NextResponse.json({ success: true })
+    // Clear WorkOS cookies
+    response.cookies.delete('workos_user_id')
+    response.cookies.delete('workos_profile_id')
+    response.cookies.delete('workos_email')
+
+    // Clear Supabase cookies
+    response.cookies.delete('sb-access-token')
+    response.cookies.delete('sb-refresh-token')
+
+    return response
+
+  } catch (error: any) {
+    console.error('[Logout] Error:', error)
+    return NextResponse.json(
+      { error: `Failed to logout: ${error.message}` },
+      { status: 500 }
+    )
+  }
 }

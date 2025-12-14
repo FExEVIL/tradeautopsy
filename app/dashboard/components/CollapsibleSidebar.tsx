@@ -108,11 +108,11 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
         { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance', icon: TrendingUp, isLink: true },
         { id: 'strategy-analysis', label: 'Strategy Analysis', time: '1m', stats: '4 strategies', href: '/dashboard/strategy-analysis', icon: BarChart3, isLink: true },
         { id: 'comparisons', label: 'Comparisons', time: '2m', stats: 'Top 75%', href: '/dashboard/comparisons', icon: Users, isLink: true },
-        { id: 'patterns', label: 'Pattern Library', time: '1m', stats: '3 patterns', href: '/dashboard/patterns', icon: BrainCircuit, isLink: true },
+        // Pattern Library moved to Behavioral Analysis tab
         { id: 'coach', label: 'AI Coach', time: '5m', stats: '2 insights', href: '/dashboard/coach', icon: Bot, isLink: true },
         { id: 'risk', label: 'Risk Management', time: '3m', stats: 'Sharpe 1.2', href: '/dashboard/risk', icon: Shield, isLink: true },
         { id: 'goals', label: 'Goals & Milestones', time: '1m', stats: '2 active', href: '/dashboard/goals', icon: Target, isLink: true },
-        { id: 'charts', label: 'Chart Analysis', time: '5m', stats: '+3 insights', href: '/dashboard/charts', icon: LineChart, isLink: true },
+        // Chart Analysis moved to Journal tab
         { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt', icon: AlertTriangle, isLink: true },
         { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional', icon: HeartPulse, isLink: true },
       ],
@@ -152,16 +152,21 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
 
   return (
     <div
-      className={`${
-        isCollapsed ? 'w-[72px] my-4' : 'w-80'
-      } h-screen bg-[#1b1912] flex flex-col transition-all duration-300 relative`}
+      className="w-80 h-screen bg-[#1b1912] flex flex-col relative overflow-hidden"
       style={{
-        borderRadius: isCollapsed ? '0 16px 16px 0' : '0',
-        height: isCollapsed ? 'calc(100vh - 32px)' : '100vh',
+        transform: 'translateZ(0)', // Force GPU acceleration
       }}
     >
+      {/* Inner container that slides */}
+      <div
+        className="flex flex-col h-full transition-transform duration-200 ease-out"
+        style={{
+          transform: isCollapsed ? 'translateX(calc(-100% + 72px))' : 'translateX(0)',
+          willChange: 'transform',
+        }}
+      >
       {/* Header */}
-      <div className={`${isCollapsed ? 'p-4 pt-6' : 'p-6 pt-8'} flex items-center justify-center transition-all duration-300`}>
+      <div className={`${isCollapsed ? 'p-4 pt-6' : 'p-6 pt-8'} flex items-center justify-center transition-all duration-200`}>
         {!isCollapsed ? (
           <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
@@ -228,7 +233,7 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
 
                     {/* Content (only when expanded) */}
                     {!isCollapsed && (
-                      <div className="flex-1 ml-3 min-w-0">
+                      <div className="flex-1 ml-3 min-w-0 transition-opacity duration-200 ease-out">
                         <div className="flex items-center justify-between mb-0.5">
                           <span className="font-medium text-sm truncate">{item.label}</span>
                           {'time' in item && item.time && (
@@ -307,7 +312,7 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
       </div>
 
       {/* Import New Trades Button */}
-<div className={`${isCollapsed ? 'px-3 pb-4' : 'p-4'}`}>
+      <div className={`${isCollapsed ? 'px-3 pb-4' : 'p-4'} transition-opacity duration-200`}>
         <Link
           href="/dashboard/import"
           className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-800/70 hover:bg-gray-700/70 text-gray-300 rounded-lg text-sm font-medium transition-colors ${isCollapsed ? 'px-3' : ''}`}
@@ -315,6 +320,7 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
           <Plus className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'}`} />
           {!isCollapsed && <span>Import New Trades</span>}
         </Link>
+      </div>
       </div>
     </div>
   )

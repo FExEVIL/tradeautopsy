@@ -14,7 +14,7 @@ export default function DashboardLayout({
       <ProfileDashboardProvider>
         <div className="flex h-screen bg-black overflow-hidden">
           <CollapsibleSidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden transition-all duration-200" style={{ transform: 'translateZ(0)' }}>
             <DashboardHeader />
             <main className="flex-1 overflow-y-auto bg-black scrollbar-hide">
               <Suspense fallback={
