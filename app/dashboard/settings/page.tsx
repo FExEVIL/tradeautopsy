@@ -8,6 +8,7 @@ import { DataPrivacySettings } from './components/DataPrivacySettings'
 import { AccountBillingSettings } from './components/AccountBillingSettings'
 import { AdvancedSettings } from './components/AdvancedSettings'
 import { UsageStatsCard } from './components/UsageStatsCard'
+import { PageLayout } from '@/components/layouts/PageLayout'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -30,30 +31,29 @@ export default async function SettingsPage() {
     .maybeSingle()
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-          <p className="text-gray-400">Customize your TradeAutopsy experience</p>
-        </div>
-
-        <SettingsClient 
-          initialPreferences={preferences || {}}
-          initialStats={stats || {}}
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <GeneralSettings />
-              <NotificationSettings />
-              <AiAutomationSettings />
-              <DataPrivacySettings />
-              <AccountBillingSettings />
-              <AdvancedSettings />
-            </div>
-            <div className="lg:col-span-1">
-              <UsageStatsCard />
-            </div>
+    <PageLayout
+      title="Settings"
+      subtitle="Customize your TradeAutopsy experience"
+      icon="settings"
+    >
+      <SettingsClient 
+        initialPreferences={preferences || {}}
+        initialStats={stats || {}}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-6">
+            <GeneralSettings />
+            <NotificationSettings />
+            <AiAutomationSettings />
+            <DataPrivacySettings />
+            <AccountBillingSettings />
+            <AdvancedSettings />
           </div>
-        </SettingsClient>
-    </div>
+          <div className="lg:col-span-1">
+            <UsageStatsCard />
+          </div>
+        </div>
+      </SettingsClient>
+    </PageLayout>
   )
 }

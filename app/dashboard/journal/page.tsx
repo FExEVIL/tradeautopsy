@@ -6,6 +6,14 @@ import { JournalTable } from './components/JournalTable'
 import { JournalFilters } from './components/JournalFilters'
 import { SearchBar } from './components/SearchBar'
 import { JournalTableSkeleton } from './components/JournalTableSkeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ChartAnalysisSection } from './components/ChartAnalysisSection'
+import { TrendingUp, BookOpen } from 'lucide-react'
+import { PageLayout } from '@/components/layouts/PageLayout'
+import { StatCard } from '@/components/ui/StatCard'
+import { Card } from '@/components/ui/Card'
+import { Mic } from 'lucide-react'
+import { formatINR } from '@/lib/formatters'
 
 export const metadata = {
   title: 'Trading Journal | TradeAutopsy',
@@ -36,6 +44,16 @@ export default async function JournalPage({
   const page = parseInt((params.page as string) || '1')
   const limit = 25
   const offset = (page - 1) * limit
+
+  // For chart analysis, we need all trades (or at least a good sample)
+  // Fetch a larger set for charts, but paginated for table
+  const { data: allTradesForCharts } = await supabase
+    .from('trades')
+    .select('*')
+    .eq('user_id', user.id)
+    .is('deleted_at', null)
+    .order('trade_date', { ascending: true })
+    .limit(1000) // Limit to 1000 for performance
 
   let query = supabase
     .from('trades')
@@ -96,74 +114,108 @@ export default async function JournalPage({
   const totalPnL = stats.totalPnL
   const winRate = totalTrades > 0 ? ((stats.winningTrades / totalTrades) * 100).toFixed(1) : '0.0'
 
-  // Format P&L for display (in Lakhs)
+  // Format P&L for display using formatter
   const formatPnL = (pnl: number) => {
-    const lakhs = Math.abs(pnl) / 100000
-    return `${pnl >= 0 ? '+' : '-'}₹${lakhs.toFixed(2)}L`
+    return formatINR(pnl, { compact: true })
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] p-6 space-y-6">
-      {/* Header with Stats */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Trading Journal</h1>
-          <p className="text-gray-400 mt-1">
-            Deep-dive into your execution quality and behavior.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-6">
-          <div className="text-right">
-            <p className="text-sm text-gray-400">NET P&L</p>
-            <p className={`text-2xl font-bold ${totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {formatPnL(totalPnL)}
-            </p>
-          </div>
-
-          <div className="text-right">
-            <p className="text-sm text-gray-400">WIN RATE</p>
-            <p className="text-2xl font-bold text-white">{winRate}%</p>
-          </div>
-        </div>
+    <PageLayout
+      title="Trading Journal"
+      subtitle="Deep-dive into your execution quality and behavior."
+      icon="bookOpen"
+    >
+      {/* Stats Cards */}
+      <div className="grid-3">
+        <StatCard
+          label="NET P&L"
+          value={formatPnL(totalPnL)}
+          subtitle={`${stats.winningTrades} wins • ${totalTrades - stats.winningTrades} losses`}
+          icon="trendingUp"
+          iconColor={totalPnL >= 0 ? 'green' : 'red'}
+          valueColor="auto"
+          variant="darker"
+        />
+        <StatCard
+          label="WIN RATE"
+          value={`${winRate}%`}
+          subtitle={`${stats.winningTrades} of ${totalTrades} trades`}
+          icon="target"
+          iconColor={parseFloat(winRate) >= 50 ? 'green' : 'red'}
+          valueColor={parseFloat(winRate) >= 50 ? 'green' : 'red'}
+          variant="darker"
+        />
+        <StatCard
+          label="JOURNAL PROGRESS"
+          value={`${journalPercentage}%`}
+          subtitle={`${journaledTrades} of ${totalTrades} trades journaled`}
+          icon="fileText"
+          iconColor="blue"
+          valueColor="white"
+          variant="darker"
+        />
       </div>
 
-      {/* Journal Progress */}
-      <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-3">
+      {/* Journal Progress Card */}
+      <Card variant="dark">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-semibold text-white">Journal Progress</h3>
-            <p className="text-sm text-gray-400">
+            <h3 className="text-lg font-semibold text-white">Journal Progress</h3>
+            <p className="text-sm text-gray-400 mt-1">
               {journaledTrades} of {totalTrades} trades journaled
             </p>
           </div>
-          <p className="text-3xl font-bold text-white">{journalPercentage}%</p>
+          <div className="p-2 rounded-lg bg-blue-500/20">
+            <Mic className="w-4 h-4 text-blue-400" />
+          </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-300"
             style={{ width: `${journalPercentage}%` }}
           />
         </div>
-      </div>
+      </Card>
 
-      {/* Search Bar */}
-      <SearchBar initialValue={params.search} />
+      {/* Tabs */}
+      <Tabs defaultValue="entries" className="space-y-6">
+        <TabsList className="bg-white/5 border border-white/10 p-1 rounded-lg">
+          <TabsTrigger value="entries" className="data-[state=active]:bg-white/10">
+            <BookOpen className="w-4 h-4 mr-2" />
+            Journal Entries
+          </TabsTrigger>
+          <TabsTrigger value="charts" className="data-[state=active]:bg-white/10">
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Chart Analysis
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Filters */}
-      <JournalFilters currentFilter={filter} currentJournaled={journaledFilter} />
+        {/* Journal Entries Tab */}
+        <TabsContent value="entries" className="space-y-6">
+          {/* Search Bar */}
+          <SearchBar initialValue={params.search} />
 
-      {/* Table */}
-      <Suspense fallback={<JournalTableSkeleton />}>
-        <JournalTable 
-          trades={trades || []} 
-          searchTerm={params.search}
-          totalCount={count || 0}
-          currentPage={page}
-        />
-      </Suspense>
-    </div>
+          {/* Filters */}
+          <JournalFilters currentFilter={filter} currentJournaled={journaledFilter} />
+
+          {/* Table */}
+          <Suspense fallback={<JournalTableSkeleton />}>
+            <JournalTable 
+              trades={trades || []} 
+              searchTerm={params.search}
+              totalCount={count || 0}
+              currentPage={page}
+            />
+          </Suspense>
+        </TabsContent>
+
+        {/* Chart Analysis Tab */}
+        <TabsContent value="charts">
+          <ChartAnalysisSection trades={allTradesForCharts || []} />
+        </TabsContent>
+      </Tabs>
+    </PageLayout>
   )
 }

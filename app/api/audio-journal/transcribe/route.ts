@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import OpenAI from 'openai'
 
-// Check if OpenAI is available
-let openai: any = null
-try {
-  const OpenAI = require('openai').default
-  if (process.env.OPENAI_API_KEY) {
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-  }
-} catch (e) {
-  console.warn('OpenAI package not installed or API key not set')
-}
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
 
+/**
+ * Transcribe audio using OpenAI Whisper API
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -23,85 +18,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!openai) {
-      return NextResponse.json(
-        { error: 'OpenAI API not configured. Please set OPENAI_API_KEY environment variable.' },
-        { status: 500 }
-      )
+    const { audioUrl, tradeId, fileName, duration } = await request.json()
+    
+    if (!audioUrl) {
+      return NextResponse.json({ error: 'Audio URL required' }, { status: 400 })
     }
 
-    const { audio, tradeId } = await request.json()
-    
-    if (!audio) {
-      return NextResponse.json({ error: 'No audio provided' }, { status: 400 })
+    console.log('[Transcribe] Processing audio for trade:', tradeId)
+
+    // Download audio from Supabase Storage
+    const audioResponse = await fetch(audioUrl)
+    if (!audioResponse.ok) {
+      throw new Error('Failed to download audio from storage')
     }
 
-    console.log('[Audio Journal] Processing audio for trade:', tradeId)
+    const audioBuffer = await audioResponse.arrayBuffer()
+    const audioFile = new File([audioBuffer], fileName || 'audio.webm', { type: 'audio/webm' })
 
-    // Convert base64 to buffer
-    const audioBuffer = Buffer.from(audio, 'base64')
+    // Transcribe using OpenAI Whisper
+    let transcript = ''
     
-    // Create a File object for OpenAI
-    const audioFile = new File([audioBuffer], 'audio.webm', { type: 'audio/webm' })
-
-    // Transcribe with OpenAI Whisper
-    console.log('[Audio Journal] Calling Whisper API...')
-    const transcription = await openai.audio.transcriptions.create({
-      file: audioFile,
-      model: 'whisper-1',
-      language: 'en', // Change to 'hi' for Hindi, 'auto' for auto-detect
-      response_format: 'verbose_json',
-      timestamp_granularities: ['word'],
-    })
-
-    const transcript = transcription.text
-    console.log('[Audio Journal] Transcription:', transcript)
-
-    // Generate AI summary and extract insights
-    console.log('[Audio Journal] Generating AI summary...')
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a trading journal AI assistant. Analyze the trader's voice note and provide:
-1. A concise 1-2 sentence summary
-2. Extracted emotions (comma-separated)
-3. Key insights or lessons learned
-4. Suggested tags
-
-Format your response as JSON:
-{
-  "summary": "Brief summary here",
-  "emotions": ["emotion1", "emotion2"],
-  "insights": ["insight1", "insight2"],
-  "tags": ["tag1", "tag2"]
-}`
-        },
-        {
-          role: 'user',
-          content: `Analyze this trading journal entry: "${transcript}"`
-        }
-      ],
-      response_format: { type: 'json_object' },
-    })
-
-    const analysis = JSON.parse(completion.choices[0].message.content || '{}')
-    console.log('[Audio Journal] AI Analysis:', analysis)
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const transcription = await openai.audio.transcriptions.create({
+          file: audioFile,
+          model: 'whisper-1',
+          language: 'en', // Optional: specify language for better accuracy
+        })
+        
+        transcript = transcription.text
+        console.log('[Transcribe] Transcription complete, length:', transcript.length)
+      } catch (openaiError: any) {
+        console.error('[Transcribe] OpenAI error:', openaiError)
+        // Fallback: return placeholder if transcription fails
+        transcript = 'Audio transcription failed. Please ensure OPENAI_API_KEY is configured correctly.'
+      }
+    } else {
+      transcript = 'Audio transcription requires OpenAI API key. Please set OPENAI_API_KEY environment variable.'
+    }
 
     return NextResponse.json({
-      transcript: transcript,
-      summary: analysis.summary || '',
-      emotions: analysis.emotions || [],
-      insights: analysis.insights || [],
-      tags: analysis.tags || [],
-      duration: transcription.duration || 0,
+      success: true,
+      transcript,
+      duration: duration || null
     })
 
   } catch (error: any) {
-    console.error('[Audio Journal] Transcription error:', error)
+    console.error('[Transcribe] Error:', error)
     return NextResponse.json(
-      { error: 'Transcription failed: ' + (error.message || 'Unknown error') },
+      { error: 'Transcription failed', details: error.message },
       { status: 500 }
     )
   }
