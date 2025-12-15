@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Mic, Square, Loader2 } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
 
 export interface AudioJournalData {
   audioBlob: Blob
@@ -29,31 +30,31 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
   const [tags, setTags] = useState<string[]>([])
   const [duration, setDuration] = useState(0)
   const [error, setError] = useState('')
-  
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<number>(0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const supabase = createClient()
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
-      
-      // Try to use webm, fallback to default
+
       let mimeType = 'audio/webm;codecs=opus'
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         mimeType = 'audio/webm'
       }
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = '' // Use browser default
+        mimeType = ''
       }
-      
+
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: mimeType || undefined
+        mimeType: mimeType || undefined,
       })
-      
+
       chunksRef.current = []
       mediaRecorderRef.current = mediaRecorder
 
@@ -64,33 +65,29 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
       }
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { 
-          type: chunksRef.current[0]?.type || 'audio/webm' 
+        const audioBlob = new Blob(chunksRef.current, {
+          type: chunksRef.current[0]?.type || 'audio/webm',
         })
         const url = URL.createObjectURL(audioBlob)
         setAudioURL(url)
-        
-        // Stop all tracks
+
         if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop())
+          streamRef.current.getTracks().forEach((track) => track.stop())
           streamRef.current = null
         }
-        
-        // Process audio
+
         await processAudio(audioBlob)
       }
 
       mediaRecorder.start()
       setIsRecording(true)
       setError('')
-      
-      // Start timer
+
       timerRef.current = 0
       intervalRef.current = setInterval(() => {
         timerRef.current += 1
         setDuration(timerRef.current)
       }, 1000)
-
     } catch (err: any) {
       setError('Microphone access denied. Please allow microphone permissions.')
       console.error('Error accessing microphone:', err)
@@ -101,7 +98,7 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
-      
+
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
@@ -112,18 +109,42 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
   const processAudio = async (audioBlob: Blob) => {
     setIsProcessing(true)
     setError('')
-    
+
     try {
-      // Convert blob to base64
-      const base64Audio = await blobToBase64(audioBlob)
-      
-      // Send to API for transcription
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('Please log in to record audio')
+      }
+
+      // 1) Upload audio to Supabase Storage (audio-journals bucket)
+      const fileName = `audio-${Date.now()}.webm`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('audio-journals')
+        .upload(`${user.id}/${fileName}`, audioBlob, {
+          contentType: 'audio/webm',
+          upsert: false,
+        })
+
+      if (uploadError) {
+        console.error('[AudioRecorder] Upload error:', uploadError)
+        throw new Error('Failed to upload audio')
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('audio-journals').getPublicUrl(`${user.id}/${fileName}`)
+
+      // 2) Call transcription API with audioUrl
       const response = await fetch('/api/audio-journal/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          audio: base64Audio,
-          tradeId: tradeId,
+          audioUrl: publicUrl,
+          tradeId,
+          fileName,
+          duration: timerRef.current,
         }),
       })
 
@@ -133,12 +154,12 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
       }
 
       const data = await response.json()
-      setTranscript(data.transcript || '')
+      const transcriptText = data.transcript || ''
+      setTranscript(transcriptText)
       setSummary(data.summary || '')
       setEmotions(data.emotions || [])
       setInsights(data.insights || [])
       setTags(data.tags || [])
-      
     } catch (err: any) {
       setError('Failed to transcribe audio: ' + (err.message || 'Unknown error'))
       console.error('Transcription error:', err)
@@ -147,26 +168,12 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
     }
   }
 
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64 = reader.result as string
-        // Remove data:audio/webm;base64, prefix
-        const base64Data = base64.includes(',') ? base64.split(',')[1] : base64
-        resolve(base64Data)
-      }
-      reader.onerror = reject
-      reader.readAsDataURL(blob)
-    })
-  }
-
   const handleSave = async () => {
     if (!audioURL) return
-    
+
     try {
-      const audioBlob = await fetch(audioURL).then(r => r.blob())
-      
+      const audioBlob = await fetch(audioURL).then((r) => r.blob())
+
       await onSave({
         audioBlob,
         transcript,
@@ -208,7 +215,7 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
               <span className="text-red-500 font-mono text-sm">{formatTime(duration)}</span>
             </div>
-            
+
             <button
               onClick={stopRecording}
               className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-white"
@@ -227,23 +234,19 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
         )}
       </div>
 
-      {/* Error Display */}
       {error && (
         <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
           <p className="text-sm text-red-400">{error}</p>
         </div>
       )}
 
-      {/* Audio Player & Transcript */}
       {audioURL && !isProcessing && (
         <div className="space-y-4 p-4 bg-white/5 border border-white/10 rounded-lg">
-          {/* Audio Player */}
           <div>
             <label className="text-sm text-gray-400 mb-2 block">Audio Recording</label>
             <audio src={audioURL} controls className="w-full" />
           </div>
 
-          {/* AI Summary */}
           {summary && (
             <div>
               <label className="text-sm text-gray-400 mb-2 block">AI Summary</label>
@@ -253,7 +256,6 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
             </div>
           )}
 
-          {/* Extracted Data */}
           {(emotions.length > 0 || insights.length > 0 || tags.length > 0) && (
             <div className="space-y-2">
               {emotions.length > 0 && (
@@ -261,20 +263,26 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
                   <label className="text-xs text-gray-500 mb-1 block">Emotions</label>
                   <div className="flex flex-wrap gap-2">
                     {emotions.map((emotion, idx) => (
-                      <span key={idx} className="px-2 py-1 bg-purple-500/10 text-purple-400 rounded text-xs">
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-purple-500/10 text-purple-400 rounded text-xs"
+                      >
                         {emotion}
                       </span>
                     ))}
                   </div>
                 </div>
               )}
-              
+
               {tags.length > 0 && (
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Tags</label>
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag, idx) => (
-                      <span key={idx} className="px-2 py-1 bg-green-500/10 text-green-400 rounded text-xs">
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-green-500/10 text-green-400 rounded text-xs"
+                      >
                         {tag}
                       </span>
                     ))}
@@ -284,12 +292,9 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
             </div>
           )}
 
-          {/* Transcript */}
           {transcript && (
             <div>
-              <label className="text-sm text-gray-400 mb-2 block">
-                Transcript (editable)
-              </label>
+              <label className="text-sm text-gray-400 mb-2 block">Transcript (editable)</label>
               <textarea
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
@@ -299,7 +304,6 @@ export function AudioRecorder({ tradeId, onSave }: AudioRecorderProps) {
             </div>
           )}
 
-          {/* Save Button */}
           <button
             onClick={handleSave}
             disabled={!transcript}

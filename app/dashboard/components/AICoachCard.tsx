@@ -26,7 +26,7 @@ export function AICoachCard() {
     
     try {
       const { data, error } = await supabase
-        .from('ai_insights')
+        .from('tai_insights')
         .select('*')
         .eq('dismissed', false)
         .order('created_at', { ascending: false })
@@ -69,7 +69,7 @@ export function AICoachCard() {
   async function dismissInsight(id: string) {
     const supabase = createClient()
     await supabase
-      .from('ai_insights')
+      .from('tai_insights')
       .update({ dismissed: true })
       .eq('id', id)
 

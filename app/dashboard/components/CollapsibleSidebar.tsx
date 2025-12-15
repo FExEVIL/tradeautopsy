@@ -26,6 +26,7 @@ import {
   BarChart3,
   Users,
   UserCircle,
+  Activity,
 } from 'lucide-react'
 
 type BaseItem = {
@@ -105,11 +106,10 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
     {
       title: 'READY FOR REVIEW',
       items: [
+        { id: 'intelligence', label: 'TAI', time: '1m', stats: 'AI Powered', href: '/dashboard/intelligence', icon: Activity, isLink: true },
         { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance', icon: TrendingUp, isLink: true },
         { id: 'strategy-analysis', label: 'Strategy Analysis', time: '1m', stats: '4 strategies', href: '/dashboard/strategy-analysis', icon: BarChart3, isLink: true },
         { id: 'comparisons', label: 'Comparisons', time: '2m', stats: 'Top 75%', href: '/dashboard/comparisons', icon: Users, isLink: true },
-        // Pattern Library moved to Behavioral Analysis tab
-        { id: 'coach', label: 'AI Coach', time: '5m', stats: '2 insights', href: '/dashboard/coach', icon: Bot, isLink: true },
         { id: 'risk', label: 'Risk Management', time: '3m', stats: 'Sharpe 1.2', href: '/dashboard/risk', icon: Shield, isLink: true },
         { id: 'goals', label: 'Goals & Milestones', time: '1m', stats: '2 active', href: '/dashboard/goals', icon: Target, isLink: true },
         // Chart Analysis moved to Journal tab
@@ -130,7 +130,6 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
         { id: 'economic-calendar', label: 'Economic Calendar', href: '/dashboard/economic-calendar', isLink: true, icon: Calendar },
         { id: 'morning-brief', label: 'Morning Brief', href: '/dashboard/morning-brief', isLink: true, icon: Target },
         { id: 'brokers', label: 'Brokers', href: '/dashboard/brokers', isLink: true, icon: Settings },
-        { id: 'ml-insights', label: 'ML Insights', href: '/dashboard/settings/ml-insights', isLink: true, icon: BrainCircuit },
       ],
     },
   ], [])
