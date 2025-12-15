@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import Logo from '@/components/ui/Logo';
 import LoginForm from '@/components/auth/LoginForm';
@@ -31,7 +32,9 @@ export default function LoginPage() {
           <h1 className="text-[32px] font-semibold text-white text-center mb-8 tracking-tight">
             Log in to TradeAutopsy
           </h1>
-          <LoginForm />
+          <Suspense fallback={null}>
+            <LoginForm />
+          </Suspense>
         </div>
       </main>
 
