@@ -32,6 +32,28 @@ module.exports = {
           border: 'rgba(239, 68, 68, 0.2)'
         }
       },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+        'blink': 'blink 1.5s ease-in-out infinite',
+        'pulse-smooth': 'pulse-smooth 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      keyframes: {
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.3' },
+        },
+        'pulse-smooth': {
+          '0%, 100%': { 
+            opacity: '1',
+            transform: 'scale(1)',
+          },
+          '50%': { 
+            opacity: '0.4',
+            transform: 'scale(0.95)',
+          },
+        },
+      },
     },
   },
   plugins: [],

@@ -207,11 +207,11 @@ export function GoalsClient({ initialGoals, trades }: GoalsClientProps) {
               <Target className="w-8 h-8 text-blue-400" />
               Goals & Milestones
             </h1>
-            <p className="text-gray-400 mt-2">Track your trading goals and celebrate achievements</p>
+            <p className="text-gray-400 text-sm mt-1">Track your trading goals and celebrate achievements</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors font-medium"
           >
             <Plus className="w-5 h-5" />
             New Goal

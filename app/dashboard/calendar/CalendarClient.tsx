@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { PnLIndicator } from '@/components/PnLIndicator'
 import { formatINR } from '@/lib/formatters'
@@ -9,6 +10,7 @@ type DayData = { pnl: number; trades: any[]; count: number }
 type Props = { dailyData: { [date: string]: DayData } }
 
 export default function CalendarClient({ dailyData = {} }: Props) { // Default to {}
+  const router = useRouter()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<{ date: string; data: DayData } | null>(null)
 
@@ -56,39 +58,39 @@ export default function CalendarClient({ dailyData = {} }: Props) { // Default t
   const winRate = monthDays.length > 0 ? (winDays / monthDays.length) * 100 : 0
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] p-6 space-y-8">
-      <div className="max-w-[1400px] mx-auto space-y-8">
-        
-        {/* Header */}
-        <div className="flex items-end justify-between">
-           <div>
-             <h1 className="text-3xl font-bold text-white">Trading Calendar</h1>
-             <p className="text-gray-400 text-sm mt-1">Visual overview of your daily P&L performance</p>
-           </div>
-        </div>
-
+    <div className="space-y-8">
         {/* Monthly Stats */}
-           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-           <div className="p-4 rounded-xl bg-[#0F0F0F] border border-white/5">
-              <div className="text-gray-400 text-xs uppercase mb-1">Monthly P&L</div>
-              <PnLIndicator value={monthPnL} size="lg" />
-           </div>
-           <div className="p-4 rounded-xl bg-[#0F0F0F] border border-white/5">
-              <div className="text-gray-400 text-xs uppercase mb-1">Win Rate</div>
-              <div className="text-2xl font-bold text-white">{winRate.toFixed(1)}%</div>
-           </div>
-           <div className="p-4 rounded-xl bg-[#0F0F0F] border border-white/5">
-              <div className="text-gray-400 text-xs uppercase mb-1">Green Days</div>
-              <div className="text-2xl font-bold text-green-400">{winDays}</div>
-           </div>
-           <div className="p-4 rounded-xl bg-[#0F0F0F] border border-white/5">
-              <div className="text-gray-400 text-xs uppercase mb-1">Red Days</div>
-              <div className="text-2xl font-bold text-red-400">{loseDays}</div>
-           </div>
+        <div className="grid-4">
+          <div className="p-5 rounded-xl bg-[#0A0A0A] border border-white/5 hover:border-white/10 transition-all">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Monthly P&L</span>
+            </div>
+            <PnLIndicator value={monthPnL} size="lg" />
+          </div>
+          <div className="p-5 rounded-xl bg-[#0A0A0A] border border-white/5 hover:border-white/10 transition-all">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Win Rate</span>
+            </div>
+            <div className={`text-2xl font-bold ${winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+              {winRate.toFixed(1)}%
+            </div>
+          </div>
+          <div className="p-5 rounded-xl bg-[#0A0A0A] border border-white/5 hover:border-white/10 transition-all">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Green Days</span>
+            </div>
+            <div className="text-2xl font-bold text-green-400">{winDays}</div>
+          </div>
+          <div className="p-5 rounded-xl bg-[#0A0A0A] border border-white/5 hover:border-white/10 transition-all">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Red Days</span>
+            </div>
+            <div className="text-2xl font-bold text-red-400">{loseDays}</div>
+          </div>
         </div>
 
         {/* Calendar */}
-        <div className="p-6 rounded-xl bg-[#0A0A0A] border border-white/5">
+        <div className="p-6 rounded-xl bg-[#0A0A0A] border border-white/5 hover:border-white/10 transition-all">
            <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">Profit Calendar</h2>
               <div className="flex items-center gap-4">
@@ -123,14 +125,24 @@ export default function CalendarClient({ dailyData = {} }: Props) { // Default t
                  return (
                     <button
                        key={idx}
-                       onClick={() => dayData && setSelectedDay({ date: dateKey, data: dayData })}
-                       className={`aspect-square rounded-lg ${getColor(pnl)} hover:ring-2 hover:ring-white/30 transition-all flex flex-col items-center justify-center p-2 relative group`}
+                       onClick={() => {
+                         if (dayData) {
+                           // Navigate to daily performance page
+                           router.push(`/dashboard/calendar/${dateKey}`)
+                         }
+                       }}
+                       className={`aspect-square rounded-lg ${getColor(pnl)} hover:ring-2 hover:ring-white/30 transition-all flex flex-col items-center justify-center p-2 relative group cursor-pointer`}
                     >
                        <span className="text-xs text-white font-medium">{day}</span>
                        {dayData && (
-                          <span className="text-[10px] font-mono text-white/90">
-                             {formatINR(pnl, { compact: true })}
-                          </span>
+                          <>
+                            <span className="text-[10px] font-mono text-white/90">
+                               {formatINR(pnl, { compact: true })}
+                            </span>
+                            <span className="text-[9px] text-white/70 mt-0.5">
+                               {dayData.count} trade{dayData.count !== 1 ? 's' : ''}
+                            </span>
+                          </>
                        )}
                     </button>
                  )
@@ -181,8 +193,6 @@ export default function CalendarClient({ dailyData = {} }: Props) { // Default t
              </div>
           </div>
         )}
-
-      </div>
     </div>
   )
 }

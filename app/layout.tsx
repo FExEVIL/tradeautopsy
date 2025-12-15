@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ToastProvider } from './dashboard/components/Toast'
@@ -94,11 +94,6 @@ export const metadata: Metadata = {
       'max-video-preview': -1,
     },
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-  },
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon-16x16.png',
@@ -125,6 +120,12 @@ export const metadata: Metadata = {
     'dns-prefetch': 'https://fonts.googleapis.com',
     'preconnect-fonts': 'https://fonts.gstatic.com',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({

@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Shield, Plus, X, AlertTriangle, Ban, Clock, Target, TrendingDown, Brain, Trophy, Award, Loader2 } from 'lucide-react'
+import { Shield, Plus, X, AlertTriangle, Ban, Clock, Target, TrendingDown, Brain, Loader2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { format } from 'date-fns'
 import { ErrorState } from '../components/ErrorState'
+import { StatCard } from '@/components/ui/StatCard'
 
 interface TradingRule {
   id: string
@@ -246,11 +247,11 @@ export default function RulesClient({ initialRules, adherenceStats }: RulesClien
               <Shield className="w-8 h-8 text-blue-400" />
               Trading Rules Engine
             </h1>
-            <p className="text-gray-400 mt-2">Create rules to enforce discipline and track adherence</p>
+            <p className="text-gray-400 text-sm mt-1">Create rules to enforce discipline and track adherence</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors font-medium"
           >
             <Plus className="w-5 h-5" />
             New Rule
@@ -258,53 +259,49 @@ export default function RulesClient({ initialRules, adherenceStats }: RulesClien
         </div>
 
         {/* Adherence Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="p-6 rounded-xl bg-gradient-to-br from-green-500/10 to-blue-500/10 border border-green-500/20">
-            <div className="flex items-center gap-3 mb-2">
-              <Trophy className="w-5 h-5 text-yellow-400" />
-              <span className="text-sm text-gray-400">Current Streak</span>
-            </div>
-            <div className="text-3xl font-bold text-white">{stats.currentStreak}</div>
-            <div className="text-xs text-gray-500 mt-1">days without violations</div>
-          </div>
-
-          <div className="p-6 rounded-xl bg-[#0F0F0F] border border-white/5">
-            <div className="flex items-center gap-3 mb-2">
-              <Award className="w-5 h-5 text-purple-400" />
-              <span className="text-sm text-gray-400">Longest Streak</span>
-            </div>
-            <div className="text-3xl font-bold text-white">{stats.longestStreak}</div>
-            <div className="text-xs text-gray-500 mt-1">best streak</div>
-          </div>
-
-          <div className="p-6 rounded-xl bg-[#0F0F0F] border border-white/5">
-            <div className="flex items-center gap-3 mb-2">
-              <Shield className="w-5 h-5 text-blue-400" />
-              <span className="text-sm text-gray-400">Adherence Score</span>
-            </div>
-            <div className={`text-3xl font-bold ${
-              stats.adherenceScore >= 90 ? 'text-green-400' :
-              stats.adherenceScore >= 70 ? 'text-yellow-400' :
-              'text-red-400'
-            }`}>
-              {stats.adherenceScore.toFixed(0)}%
-            </div>
-            <div className="text-xs text-gray-500 mt-1">rule compliance</div>
-          </div>
-
-          <div className="p-6 rounded-xl bg-[#0F0F0F] border border-white/5">
-            <div className="flex items-center gap-3 mb-2">
-              <AlertTriangle className="w-5 h-5 text-red-400" />
-              <span className="text-sm text-gray-400">Total Violations</span>
-            </div>
-            <div className="text-3xl font-bold text-white">{stats.totalViolations}</div>
-            <div className="text-xs text-gray-500 mt-1">out of {stats.totalTrades} trades</div>
-          </div>
+        <div className="grid-4">
+          <StatCard
+            label="CURRENT STREAK"
+            value={stats.currentStreak}
+            subtitle="days without violations"
+            icon="trophy"
+            iconColor="orange"
+            valueColor="white"
+            variant="darker"
+            className="bg-gradient-to-br from-green-500/10 to-blue-500/10 border-green-500/20"
+          />
+          <StatCard
+            label="LONGEST STREAK"
+            value={stats.longestStreak}
+            subtitle="best streak"
+            icon="award"
+            iconColor="purple"
+            valueColor="white"
+            variant="darker"
+          />
+          <StatCard
+            label="ADHERENCE SCORE"
+            value={`${stats.adherenceScore.toFixed(0)}%`}
+            subtitle="rule compliance"
+            icon="shield"
+            iconColor={stats.adherenceScore >= 90 ? 'green' : stats.adherenceScore >= 70 ? 'orange' : 'red'}
+            valueColor={stats.adherenceScore >= 90 ? 'green' : stats.adherenceScore >= 70 ? 'orange' : 'red'}
+            variant="darker"
+          />
+          <StatCard
+            label="TOTAL VIOLATIONS"
+            value={stats.totalViolations}
+            subtitle={`out of ${stats.totalTrades} trades`}
+            icon="alertTriangle"
+            iconColor="red"
+            valueColor="white"
+            variant="darker"
+          />
         </div>
 
         {/* Badges */}
         {stats.badges.length > 0 && (
-          <div className="p-6 rounded-xl bg-[#0F0F0F] border border-white/5">
+          <div className="p-6 rounded-xl bg-[#0A0A0A] border border-white/5 hover:border-white/10 transition-all">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Award className="w-5 h-5 text-yellow-400" />
               Earned Badges
@@ -323,7 +320,7 @@ export default function RulesClient({ initialRules, adherenceStats }: RulesClien
         <div>
           <h2 className="text-xl font-semibold text-white mb-6">Your Rules</h2>
           {rules.length === 0 ? (
-            <div className="text-center py-12 bg-[#0F0F0F] border border-white/5 rounded-xl">
+            <div className="text-center py-12 bg-[#0A0A0A] border border-white/5 rounded-xl">
               <Shield className="w-16 h-16 mx-auto mb-4 text-gray-600" />
               <p className="text-gray-400 mb-2">No rules created yet</p>
               <p className="text-sm text-gray-500 mb-4">Create your first rule to start enforcing discipline</p>
