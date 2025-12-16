@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { ToastProvider } from './dashboard/components/Toast'
 import { ThemeProvider } from '@/components/ThemeProvider'
@@ -148,6 +149,7 @@ export default function RootLayout({
           <ToastProvider>
             {children}
             <KeyboardShortcuts />
+            <SpeedInsights />
           </ToastProvider>
         </ThemeProvider>
       </body>
