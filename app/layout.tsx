@@ -169,6 +169,7 @@ export default function RootLayout({
           <ToastProvider>
             {children}
             <KeyboardShortcuts />
+            <SpeedInsights />
           </ToastProvider>
         </ThemeProvider>
         
