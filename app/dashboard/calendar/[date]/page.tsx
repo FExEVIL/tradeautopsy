@@ -10,10 +10,14 @@ import { PrintStyles } from './components/PrintStyles'
 
 interface PageProps {
   params: Promise<{ date: string }>
+  searchParams: Promise<{ returnMonth?: string; returnYear?: string }>
 }
 
-export default async function DailyPerformancePage({ params }: PageProps) {
+export default async function DailyPerformancePage({ params, searchParams }: PageProps) {
   const { date } = await params
+  const search = await searchParams
+  const returnMonth = search.returnMonth
+  const returnYear = search.returnYear
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -99,7 +103,9 @@ export default async function DailyPerformancePage({ params }: PageProps) {
               Try selecting a different date from the calendar, or check if trades exist for this date.
             </p>
             <a
-              href="/dashboard/calendar"
+              href={returnMonth && returnYear
+                ? `/dashboard/calendar?month=${returnMonth}&year=${returnYear}`
+                : '/dashboard/calendar'}
               className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition text-sm text-white"
             >
               ← Back to Calendar

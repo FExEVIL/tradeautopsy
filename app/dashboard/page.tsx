@@ -13,7 +13,8 @@ import {
 } from '@/lib/calculations'
 import { formatINR } from '@/lib/formatters'
 import { format } from 'date-fns'
-import { CumulativePnLChart } from './components/CumulativePnLChart'
+import { Suspense } from 'react'
+import { DynamicCumulativePnLChart } from '@/lib/dynamicImports'
 import { BenchmarkCard } from './components/BenchmarkCard'
 import { AnimatedProgressBar } from './components/AnimatedProgressBar'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -252,7 +253,9 @@ export default async function DashboardPage(
             Cumulative P&L
           </h3>
           <div className="h-80">
-            <CumulativePnLChart data={cumulativeData} granularity={granularity} />
+            <Suspense fallback={<div className="h-full bg-gray-900 rounded animate-pulse" />}>
+              <DynamicCumulativePnLChart data={cumulativeData} granularity={granularity} />
+            </Suspense>
           </div>
         </Card>
 

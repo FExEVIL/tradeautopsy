@@ -5,6 +5,7 @@ import { validateTradeAgainstRules, logRuleViolation } from '@/lib/rule-engine'
 import { processTradesWithPnL, TradeData, calculateSingleTradePnL } from '@/lib/pnl-calculator'
 import { detectCSVFormat, parseCSVWithMapping } from '@/lib/csv-auto-detector'
 import { calculatePnL, calculateTotalPnL, type TradeRow } from '@/lib/pnl-calculator'
+import { processAutoFeatures } from '@/lib/intelligence/auto-processor'
 
 export async function POST(request: NextRequest) {
   try {
@@ -799,6 +800,46 @@ export async function POST(request: NextRequest) {
       } catch (statsError) {
         // Don't fail import if stats update fails
         console.error('Error updating adherence stats:', statsError)
+      }
+    }
+
+    // Process auto-features (tagging, mistakes, goals) in background
+    // Collect all inserted trade IDs first
+    let allInsertedTradeIds: string[] = []
+    if (totalInserted > 0) {
+      try {
+        // Fetch the IDs of recently inserted trades
+        let recentTradesQuery = supabase
+          .from('trades')
+          .select('id')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(totalInserted)
+
+        if (profileId) {
+          recentTradesQuery = recentTradesQuery.eq('profile_id', profileId)
+        }
+
+        const { data: recentTrades } = await recentTradesQuery
+        allInsertedTradeIds = (recentTrades || []).map(t => t.id)
+
+        // Process auto-features in background (don't block response)
+        if (allInsertedTradeIds.length > 0) {
+          processAutoFeatures(user.id, profileId, allInsertedTradeIds)
+            .then(result => {
+              console.log('[AutoProcessor] Processed:', {
+                tagsApplied: result.tagsApplied,
+                mistakesDetected: result.mistakesDetected,
+                goalsGenerated: result.goalsGenerated,
+              })
+            })
+            .catch(err => {
+              console.error('[AutoProcessor] Error:', err)
+            })
+        }
+      } catch (autoError) {
+        // Don't fail import if auto-processing fails
+        console.error('Error processing auto-features:', autoError)
       }
     }
 

@@ -26,6 +26,8 @@ import {
   Legend,
   Cell
 } from 'recharts'
+import { darkChartTheme, rechartsTheme } from '@/lib/chartTheme'
+import { DarkTooltip } from '@/components/charts/DarkTooltip'
 
 interface StrategyAnalysisClientProps {
   trades: Trade[]
@@ -163,13 +165,21 @@ export default function StrategyAnalysisClient({ trades }: StrategyAnalysisClien
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={strategyMetrics}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis dataKey="strategy" stroke="#666" />
-                    <YAxis stroke="#666" />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkChartTheme.grid.stroke} />
+                    <XAxis 
+                      dataKey="strategy" 
+                      stroke={darkChartTheme.axis.stroke}
+                      tick={{ fill: darkChartTheme.axis.tick.fill }}
                     />
-                    <Legend />
+                    <YAxis 
+                      stroke={darkChartTheme.axis.stroke}
+                      tick={{ fill: darkChartTheme.axis.tick.fill }}
+                    />
+                    <Tooltip content={<DarkTooltip />} cursor={darkChartTheme.cursor} />
+                    <Legend 
+                      wrapperStyle={darkChartTheme.legend.wrapperStyle}
+                      iconType={darkChartTheme.legend.iconType}
+                    />
                     <Bar dataKey="totalPnL" name="Total P&L" fill="#3b82f6" />
                     <Bar dataKey="winRate" name="Win Rate %" fill="#10b981" />
                   </BarChart>
@@ -191,13 +201,27 @@ export default function StrategyAnalysisClient({ trades }: StrategyAnalysisClien
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={timePerformance}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="hour" stroke="#666" label={{ value: 'Hour of Day', position: 'insideBottom', offset: -5 }} />
-                  <YAxis stroke="#666" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
+                  <CartesianGrid strokeDasharray="3 3" stroke={darkChartTheme.grid.stroke} />
+                  <XAxis 
+                    dataKey="hour" 
+                    stroke={darkChartTheme.axis.stroke}
+                    tick={{ fill: darkChartTheme.axis.tick.fill }}
+                    label={{ 
+                      value: 'Hour of Day', 
+                      position: 'insideBottom', 
+                      offset: -5,
+                      fill: darkChartTheme.axis.label.fill
+                    }} 
                   />
-                  <Legend />
+                  <YAxis 
+                    stroke={darkChartTheme.axis.stroke}
+                    tick={{ fill: darkChartTheme.axis.tick.fill }}
+                  />
+                  <Tooltip content={<DarkTooltip />} cursor={darkChartTheme.cursor} />
+                  <Legend 
+                    wrapperStyle={darkChartTheme.legend.wrapperStyle}
+                    iconType={darkChartTheme.legend.iconType}
+                  />
                   <Line type="monotone" dataKey="winRate" name="Win Rate %" stroke="#10b981" strokeWidth={2} />
                   <Line type="monotone" dataKey="avgPnL" name="Avg P&L (₹)" stroke="#3b82f6" strokeWidth={2} />
                 </LineChart>

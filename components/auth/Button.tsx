@@ -17,22 +17,25 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseClasses = `
-    w-full h-11 px-4 rounded-[5px] font-medium text-sm
+    w-full h-11 px-4 rounded-md font-medium text-sm
     transition-all duration-150
     disabled:opacity-50 disabled:cursor-not-allowed
     flex items-center justify-center gap-2
+    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black
   `
 
   const variantClasses = {
     primary: `
-      bg-[#ffffff] text-black
+      bg-white text-black
       hover:bg-[#e6e6e6]
       active:bg-[#d9d9d9]
+      focus:ring-white
     `,
     secondary: `
-      bg-transparent border border-[#333333] text-white
-      hover:bg-[#1a1a1a] hover:border-[#404040]
+      bg-transparent border border-[#262626] text-white
+      hover:bg-[#0a0a0a] hover:border-[#404040]
       active:bg-[#0d0d0d]
+      focus:ring-[#404040]
     `,
   }
 

@@ -10,17 +10,27 @@ const openai = new OpenAI({
  * Transcribe audio using OpenAI Whisper API
  */
 export async function POST(request: NextRequest) {
+  console.log('🎙️ [Transcribe] API called')
+  
   try {
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {
+      console.error('❌ [Transcribe] Unauthorized')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { audioUrl, tradeId, fileName, duration } = await request.json()
     
+    console.log('📦 [Transcribe] Request body:', { 
+      hasAudioUrl: !!audioUrl,
+      tradeId: tradeId,
+      fileName: fileName
+    })
+    
     if (!audioUrl) {
+      console.error('❌ [Transcribe] No audio URL provided')
       return NextResponse.json({ error: 'Audio URL required' }, { status: 400 })
     }
 
@@ -47,7 +57,7 @@ export async function POST(request: NextRequest) {
         })
         
         transcript = transcription.text
-        console.log('[Transcribe] Transcription complete, length:', transcript.length)
+        console.log('✅ [Transcribe] Transcription complete, length:', transcript.length)
       } catch (openaiError: any) {
         console.error('[Transcribe] OpenAI error:', openaiError)
         // Fallback: return placeholder if transcription fails
@@ -64,7 +74,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('[Transcribe] Error:', error)
+    console.error('❌ [Transcribe] Error:', error)
     return NextResponse.json(
       { error: 'Transcription failed', details: error.message },
       { status: 500 }

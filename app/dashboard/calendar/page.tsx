@@ -1,8 +1,10 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { getCurrentProfileId } from '@/lib/profile-utils'
-import CalendarClient from './CalendarClient'
+import { Suspense } from 'react'
+import { DynamicCalendar } from '@/lib/dynamicImports'
 import { PageLayout } from '@/components/layouts/PageLayout'
+import { getCalendarData } from '@/lib/queries/optimized'
 
 export default async function CalendarPage() {
   const supabase = await createClient()
@@ -12,35 +14,17 @@ export default async function CalendarPage() {
 
   const profileId = await getCurrentProfileId(user.id)
 
-  // Fetch all trades for calendar with profile filter
-  let query = supabase
-    .from('trades')
-    .select('*')
-    .eq('user_id', user.id)
-    .is('deleted_at', null)
-    .order('trade_date', { ascending: true })
-
-  if (profileId) {
-    query = query.eq('profile_id', profileId)
-  }
-
-  const { data: trades } = await query
-
-  // Process trades into daily P&L map
-  const dailyData: { [date: string]: { pnl: number; trades: any[]; count: number } } = {}
-
-  ;(trades || []).forEach(t => {
-    const dateKey = t.trade_date ? new Date(t.trade_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-    const pnl = parseFloat(t.pnl || 0)
-
-    if (!dailyData[dateKey]) {
-      dailyData[dateKey] = { pnl: 0, trades: [], count: 0 }
-    }
-
-    dailyData[dateKey].pnl += pnl
-    dailyData[dateKey].trades.push(t)
-    dailyData[dateKey].count++
-  })
+  // ✅ Use optimized query function for current month
+  const startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+  const endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+  
+  const dailyData = await getCalendarData(
+    supabase,
+    user.id,
+    startDate,
+    endDate,
+    profileId
+  )
 
   return (
     <PageLayout
@@ -48,7 +32,9 @@ export default async function CalendarPage() {
       subtitle="Track your trading activity and performance over time. Click on any date to see detailed performance."
       icon="calendar"
     >
-      <CalendarClient dailyData={dailyData} />
+      <Suspense fallback={<div className="h-96 bg-gray-900 rounded-lg animate-pulse" />}>
+        <DynamicCalendar dailyData={dailyData} />
+      </Suspense>
     </PageLayout>
   )
 }

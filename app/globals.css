@@ -9,11 +9,68 @@
   --font-mono: var(--font-geist-mono);
 }
 
-body {
-  @apply bg-black text-white antialiased;
-  font-feature-settings: "cv11", "ss01";
-  font-variation-settings: "opsz" auto;
-  font-family: Arial, Helvetica, sans-serif;
+/* ✅ CSS Containment for better rendering */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    
+    /* Enable GPU acceleration */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  body {
+    @apply bg-black text-white antialiased;
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: "opsz" auto;
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    
+    /* Prevent layout shifts */
+    overflow-x: hidden;
+    overflow-y: scroll;
+  }
+
+  /* ✅ Optimize rendering for specific elements */
+  .dashboard-card {
+    contain: layout style paint;
+    content-visibility: auto;
+  }
+
+  .chart-container {
+    contain: layout style;
+    will-change: transform;
+  }
+
+  .calendar-grid {
+    contain: layout;
+  }
+
+  /* ✅ Smooth scrolling with GPU acceleration */
+  .scroll-container {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transform: translateZ(0);
+  }
+
+  /* ✅ Optimize expensive properties */
+  .animated {
+    will-change: transform, opacity;
+  }
+
+  .animated:not(:hover):not(:focus) {
+    will-change: auto;
+  }
 }
 @keyframes slide-in {
   from {
@@ -318,5 +375,23 @@ html {
 
   .glow-blue {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+
+  /* ✅ CSS Containment utilities */
+  .contain-strict {
+    contain: strict;
+  }
+
+  .contain-content {
+    contain: content;
+  }
+
+  .contain-layout {
+    contain: layout;
+  }
+
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 }

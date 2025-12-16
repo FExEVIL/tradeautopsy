@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Download, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 
 interface DailyPerformanceHeaderProps {
@@ -11,6 +12,16 @@ interface DailyPerformanceHeaderProps {
 
 export function DailyPerformanceHeader({ date }: DailyPerformanceHeaderProps) {
   const [exporting, setExporting] = useState(false)
+  const searchParams = useSearchParams()
+  
+  // Get return month/year from URL
+  const returnMonth = searchParams.get('returnMonth')
+  const returnYear = searchParams.get('returnYear')
+  
+  // Build back URL with month/year if available
+  const backUrl = returnMonth && returnYear
+    ? `/dashboard/calendar?month=${returnMonth}&year=${returnYear}`
+    : '/dashboard/calendar'
 
   const handleExportPDF = async () => {
     setExporting(true)
@@ -44,7 +55,7 @@ export function DailyPerformanceHeader({ date }: DailyPerformanceHeaderProps) {
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div className="flex items-center gap-4">
         <Link
-          href="/dashboard/calendar"
+          href={backUrl}
           className="p-2 hover:bg-white/10 rounded-lg transition"
         >
           <ArrowLeft className="w-5 h-5 text-white" />

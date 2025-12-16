@@ -1,12 +1,24 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { ToastProvider } from './dashboard/components/Toast'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 import { APP_URL } from '@/lib/constants'
+import { reportWebVitals } from '@/lib/vitals'
+import PerformanceMonitor from '@/components/PerformanceMonitor'
 
-const inter = Inter({ subsets: ['latin'] })
+// ✅ Export reportWebVitals for Next.js automatic integration
+export { reportWebVitals }
+
+// ✅ Font optimization with display swap
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  variable: '--font-inter',
+})
 
 const siteUrl = APP_URL
 const siteName = 'TradeAutopsy'
@@ -126,6 +138,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  userScalable: true,
+  themeColor: '#000000',
 }
 
 export default function RootLayout({
@@ -136,20 +150,33 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* ✅ Preconnect to external domains */}
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
+        <link rel="dns-prefetch" href="https://api.openai.com" />
+        <link rel="dns-prefetch" href="https://api.workos.com" />
+        <link rel="dns-prefetch" href="https://*.supabase.co" />
+        
+        {/* ✅ Preload critical assets */}
+        <link rel="preload" href="/favicon.ico" as="image" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${inter.className}`}>
         <ThemeProvider>
           <ToastProvider>
             {children}
             <KeyboardShortcuts />
           </ToastProvider>
         </ThemeProvider>
+        
+        {/* ✅ Vercel Speed Insights - automatically tracks all Web Vitals */}
+        <SpeedInsights />
+        
+        {/* ✅ Performance Monitor (development only) */}
+        <PerformanceMonitor />
       </body>
     </html>
   )
