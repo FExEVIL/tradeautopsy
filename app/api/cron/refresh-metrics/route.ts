@@ -20,21 +20,44 @@ export async function GET(request: NextRequest) {
   )
 
   try {
+    console.log('✅ Starting dashboard metrics refresh...')
+
     // ✅ Refresh materialized view (runs every 5 minutes via Vercel Cron)
-    const { error } = await supabase.rpc('refresh_dashboard_metrics')
+    const { data, error } = await supabase.rpc('refresh_dashboard_metrics')
 
     if (error) {
-      console.error('Error refreshing dashboard metrics:', error)
+      console.error('❌ Error refreshing dashboard metrics:', error)
       return NextResponse.json(
-        { error: error.message, success: false },
+        { 
+          success: false,
+          error: error.message,
+          details: error,
+        },
         { status: 500 }
       )
     }
 
+    // ✅ Function returns JSONB with success/error info
+    const result = data as { success: boolean; message?: string; error?: string; duration_ms?: number }
+    
+    if (result && result.success === false) {
+      console.error('❌ Refresh function returned error:', result.error)
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.error || 'Unknown error',
+          message: result.message,
+        },
+        { status: 500 }
+      )
+    }
+
+    console.log('✅ Dashboard metrics refreshed successfully:', result)
+
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
-      message: 'Dashboard metrics refreshed successfully',
+      result: result,
     })
   } catch (error: any) {
     console.error('Cron job error:', error)

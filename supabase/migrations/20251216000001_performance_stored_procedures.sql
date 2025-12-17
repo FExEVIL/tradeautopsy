@@ -74,12 +74,44 @@ CREATE INDEX IF NOT EXISTS idx_dashboard_mv_user_profile
 ON dashboard_metrics_mv(user_id, profile_id) WHERE profile_id IS NOT NULL;
 
 -- ✅ Auto-refresh function for materialized view
+-- Returns JSONB for better error handling and logging
 CREATE OR REPLACE FUNCTION refresh_dashboard_metrics()
-RETURNS void AS $$
+RETURNS jsonb AS $$
+DECLARE
+  start_time TIMESTAMP;
+  end_time TIMESTAMP;
+  result jsonb;
 BEGIN
+  start_time := clock_timestamp();
+  
+  -- Refresh the materialized view
   REFRESH MATERIALIZED VIEW CONCURRENTLY dashboard_metrics_mv;
+  
+  end_time := clock_timestamp();
+  
+  -- Return success result
+  result := jsonb_build_object(
+    'success', true,
+    'message', 'Dashboard metrics refreshed successfully',
+    'duration_ms', EXTRACT(MILLISECONDS FROM (end_time - start_time)),
+    'refreshed_at', NOW()
+  );
+  
+  RETURN result;
+  
+EXCEPTION WHEN OTHERS THEN
+  -- Return error result
+  result := jsonb_build_object(
+    'success', false,
+    'error', SQLERRM,
+    'message', 'Failed to refresh dashboard metrics',
+    'refreshed_at', NOW()
+  );
+  
+  RETURN result;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ✅ Grant execute to service role (for cron jobs)
 GRANT EXECUTE ON FUNCTION refresh_dashboard_metrics() TO service_role;
+GRANT EXECUTE ON FUNCTION refresh_dashboard_metrics() TO authenticated;
