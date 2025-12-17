@@ -21,6 +21,9 @@ const nextConfig = {
       '@supabase/supabase-js',
       'date-fns',
     ],
+    // ✅ Removed optimizeCss - Next.js 15 has excellent built-in CSS optimization
+    // Using experimental optimizeCss requires critters package and can cause build issues
+    // Next.js/SWC already optimizes CSS effectively without this flag
     serverActions: {
       bodySizeLimit: '2mb',
     },

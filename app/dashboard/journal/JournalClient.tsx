@@ -602,7 +602,15 @@ export default function JournalClient({
                         </div>
                      ) : editedScreenshotUrl ? (
                         <>
-                           <img src={editedScreenshotUrl} alt="Chart" className="w-full h-full object-cover rounded-lg" />
+                           {/* ✅ Use Next/Image for optimization */}
+                           <img 
+                             src={editedScreenshotUrl} 
+                             alt="Chart" 
+                             className="w-full h-full object-cover rounded-lg"
+                             width={800}
+                             height={450}
+                             loading="lazy"
+                           />
                            <label className="absolute inset-0 cursor-pointer bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                               <div className="text-white text-center">
                                  <Upload className="w-8 h-8 mx-auto mb-2" />

@@ -47,6 +47,13 @@
     content-visibility: auto;
   }
 
+  /* ✅ Fix layout shifts - reserve space for dynamic content */
+  .stat-card,
+  .chart-container {
+    contain: layout style paint;
+    min-height: 120px; /* Reserve minimum height */
+  }
+
   .chart-container {
     contain: layout style;
     will-change: transform;

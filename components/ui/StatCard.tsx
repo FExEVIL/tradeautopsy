@@ -118,7 +118,7 @@ export function StatCard({
     <div
       className={cn(
         cardVariants[variant],
-        'border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all',
+        'border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all min-h-[120px]',
         className
       )}
     >

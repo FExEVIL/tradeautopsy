@@ -1,8 +1,57 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["bom1"]
-}
+  "regions": ["bom1"],
+  "buildCommand": "next build",
+  
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 10,
+      "memory": 1024
+    }
+  },
 
+  "headers": [
+    {
+      "source": "/dashboard",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=60, stale-while-revalidate=120"
+        }
+      ]
+    },
+    {
+      "source": "/api/dashboard/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=60, stale-while-revalidate=120"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "public, s-maxage=60"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "public, s-maxage=60"
+        }
+      ]
+    },
+    {
+      "source": "/static/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+
+  "crons": [
+    {
+      "path": "/api/cron/refresh-metrics",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

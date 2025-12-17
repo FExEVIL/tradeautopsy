@@ -15,6 +15,7 @@ import { formatINR } from '@/lib/formatters'
 import { format } from 'date-fns'
 import { Suspense } from 'react'
 import { DynamicCumulativePnLChart } from '@/lib/dynamicImports'
+import { MetricsSkeleton, StatsSkeleton, ChartsSkeleton } from './components/DashboardMetricsSkeleton'
 import { BenchmarkCard } from './components/BenchmarkCard'
 import { AnimatedProgressBar } from './components/AnimatedProgressBar'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -68,25 +69,40 @@ export default async function DashboardPage(
   // Get current profile
   const profileId = await getCurrentProfileId(user.id)
 
-  // Fetch trades with date filter (handle "All" range)
-  let query = supabase
-    .from('trades')
-    .select('*')
-    .eq('user_id', user.id)
-    .is('deleted_at', null)
-  
-  // Filter by profile if one is selected
-  if (profileId) {
-    query = query.eq('profile_id', profileId)
-  }
-  
-  if (!isAllRange) {
-    query = query
-      .gte('trade_date', startDate.toISOString().split('T')[0])
-      .lte('trade_date', endDate.toISOString().split('T')[0])
-  }
-  
-  const { data: tradesRaw, error: tradesError } = await query.order('trade_date', { ascending: true })
+  // ✅ Fetch only required columns for better performance
+  // ✅ Use parallel fetching for metrics and trades
+  const [metricsRes, tradesRes] = await Promise.all([
+    // Fetch metrics using stored procedure (fast)
+    supabase.rpc('get_user_metrics_fast', {
+      p_user_id: user.id,
+      p_profile_id: profileId || null,
+      p_start_date: isAllRange ? null : startDate.toISOString().split('T')[0],
+      p_end_date: isAllRange ? null : endDate.toISOString().split('T')[0],
+    }),
+    // Fetch only needed columns for trades
+    (async () => {
+      let query = supabase
+        .from('trades')
+        .select('id, trade_date, symbol, pnl') // ✅ Only fetch needed columns
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+      
+      if (profileId) {
+        query = query.eq('profile_id', profileId)
+      }
+      
+      if (!isAllRange) {
+        query = query
+          .gte('trade_date', startDate.toISOString().split('T')[0])
+          .lte('trade_date', endDate.toISOString().split('T')[0])
+      }
+      
+      return query.order('trade_date', { ascending: true })
+    })(),
+  ])
+
+  const { data: metricsData } = metricsRes
+  const { data: tradesRaw, error: tradesError } = await tradesRes
 
   if (tradesError) {
     console.error('Trades fetch error:', tradesError)
@@ -94,26 +110,22 @@ export default async function DashboardPage(
 
   const trades: Trade[] = (tradesRaw as Trade[] | null) ?? []
 
-  // Calculate metrics based on granularity
-  const aggregated = aggregateTradesByGranularity(trades as any, granularity)
-  const cumulativeData = calculateCumulativeFromAggregated(aggregated)
-
-  const netPnL = trades.reduce((sum, trade) => {
+  // ✅ Use metrics from stored procedure if available (much faster)
+  const netPnL = metricsData?.total_pnl ?? trades.reduce((sum, trade) => {
     const val = trade.pnl != null ? Number(trade.pnl) : 0
     return sum + (isNaN(val) ? 0 : val)
   }, 0)
 
-  const progress = await getJournalProgress(user.id, profileId)
-
-  const winCount = trades.filter(t => {
+  const winCount = metricsData?.win_count ?? trades.filter(t => {
     const val = t.pnl != null ? Number(t.pnl) : 0
     return val > 0
   }).length
 
-  const winRate =
-    trades.length > 0 ? Math.round((winCount / trades.length) * 100) : 0
-
-  const avgTrade = trades.length > 0 ? netPnL / trades.length : 0
+  const winRate = metricsData?.win_rate ?? (trades.length > 0 ? Math.round((winCount / trades.length) * 100) : 0)
+  const avgTrade = metricsData?.avg_trade ?? (trades.length > 0 ? netPnL / trades.length : 0)
+  const bestDayPnL = metricsData?.best_trade ?? (trades.length > 0
+    ? Math.max(...trades.map(t => Number(t.pnl) || 0))
+    : 0)
 
   // Find best day trade (for tooltip)
   const bestDayTrade = trades.length > 0
@@ -124,9 +136,14 @@ export default async function DashboardPage(
       }, trades[0])
     : null
 
-  const bestDayPnL = bestDayTrade
-    ? (bestDayTrade.pnl != null ? Number(bestDayTrade.pnl) : 0)
-    : 0
+  // ✅ Fetch progress in parallel with other data
+  const [progress] = await Promise.all([
+    getJournalProgress(user.id, profileId),
+  ])
+
+  // Calculate metrics based on granularity (only for charts)
+  const aggregated = aggregateTradesByGranularity(trades as any, granularity)
+  const cumulativeData = calculateCumulativeFromAggregated(aggregated)
 
   // Check if Zerodha is connected
   const { data: zerodhaToken } = await supabase
@@ -161,9 +178,10 @@ export default async function DashboardPage(
         <PredictiveAlerts />
       </FeatureGate>
 
-      {/* Top KPIs - Hero Net P&L + Journal Progress */}
+      {/* ✅ LCP ELEMENT - Top KPIs - Hero Net P&L + Journal Progress */}
+      {/* This is likely the LCP element - render FIRST with server data */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card variant="dark" className="lg:col-span-2">
+        <Card variant="dark" className="lg:col-span-2 min-h-[120px]">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
               Net P&L
@@ -172,10 +190,11 @@ export default async function DashboardPage(
               <BarChart3 className={`w-4 h-4 ${netPnL >= 0 ? 'text-green-400' : 'text-red-400'}`} />
             </div>
           </div>
+          {/* ✅ Server-rendered value - no client-side loading delay */}
           <PnLIndicator value={netPnL} variant="text" size="lg" />
         </Card>
 
-        <Card variant="dark">
+        <Card variant="dark" className="min-h-[120px]">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
               Journal Progress
@@ -184,7 +203,8 @@ export default async function DashboardPage(
               <BarChart3 className="w-4 h-4 text-blue-400" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-white mb-2">
+          {/* ✅ Server-rendered value - no layout shift */}
+          <div className="text-3xl font-bold text-white mb-2 min-h-[40px]">
             {progress.journaled}/{progress.total}
           </div>
           <AnimatedProgressBar
@@ -195,7 +215,7 @@ export default async function DashboardPage(
         </Card>
       </div>
 
-      {/* Secondary Metrics Row */}
+      {/* ✅ Secondary Metrics Row - Fixed heights to prevent CLS */}
       <div className="grid-4">
         <StatCard
           label="WIN RATE"
@@ -205,6 +225,7 @@ export default async function DashboardPage(
           iconColor={winRate >= 50 ? 'green' : 'red'}
           valueColor={winRate >= 50 ? 'green' : 'red'}
           variant="darker"
+          className="min-h-[120px]"
         />
         <StatCard
           label="TOTAL TRADES"
@@ -246,22 +267,28 @@ export default async function DashboardPage(
         </div>
       </div>
 
-      {/* Charts Section - Cumulative P&L + Recent Activity */}
+      {/* ✅ Charts Section - Load AFTER LCP element (progressive rendering) */}
       <div className="grid-2">
         <Card variant="dark">
           <h3 className="text-lg font-semibold mb-4 text-white">
             Cumulative P&L
           </h3>
-          <div className="h-80">
-            <Suspense fallback={<div className="h-full bg-gray-900 rounded animate-pulse" />}>
+          {/* ✅ Fixed height to prevent layout shift (CLS optimization) */}
+          <div className="h-80 min-h-[320px] relative">
+            <Suspense fallback={
+              <div className="absolute inset-0 bg-gray-900 rounded animate-pulse flex items-center justify-center">
+                <span className="text-gray-500 text-sm">Loading chart...</span>
+              </div>
+            }>
               <DynamicCumulativePnLChart data={cumulativeData} granularity={granularity} />
             </Suspense>
           </div>
         </Card>
 
-        <Card variant="dark">
+        <Card variant="dark" className="min-h-[400px]">
           <h3 className="text-lg font-semibold mb-4 text-white">Recent Activity</h3>
-          <div className="space-y-3">
+          {/* ✅ Fixed container height to prevent layout shift */}
+          <div className="space-y-3 min-h-[300px]">
             {trades.slice(0, 5).map(trade => (
               <div
                 key={trade.id}
