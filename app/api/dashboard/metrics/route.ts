@@ -5,7 +5,7 @@ import { getCurrentProfileId } from '@/lib/profile-utils'
 // ✅ Removed edge runtime - Supabase server client uses cookies() which requires Node.js runtime
 // Edge runtime doesn't support cookies() from 'next/headers'
 // Using Node.js runtime for compatibility with Supabase authentication
-// export const runtime = 'edge' // ❌ Removed - incompatible with Supabase server client
+// export const runtime = 'edge' // ❌ Removed - incompatible with createClient() from @/utils/supabase/server
 
 // ✅ Cache at CDN level (Vercel Edge Network)
 export const revalidate = 60 // Revalidate every 60s
