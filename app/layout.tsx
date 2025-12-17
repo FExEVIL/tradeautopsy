@@ -12,11 +12,13 @@ import PerformanceMonitor from '@/components/PerformanceMonitor'
 // ✅ Export reportWebVitals for Next.js automatic integration
 export { reportWebVitals }
 
-// ✅ Font optimization with display swap
+// ✅ Font optimization with display swap and fallback matching
+// Prevents layout shift during font loading (CLS optimization)
 const inter = Inter({ 
   subsets: ['latin'],
-  display: 'swap',
+  display: 'swap', // ✅ Prevent layout shift during font loading
   preload: true,
+  adjustFontFallback: true, // ✅ Match fallback font metrics to prevent CLS
   variable: '--font-inter',
 })
 
@@ -89,6 +91,7 @@ export const metadata: Metadata = {
     images: [`${siteUrl}/twitter-image.png`],
   },
   applicationName: siteName,
+  manifest: '/site.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -107,8 +110,11 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon-16x16.png',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+    ],
+    shortcut: '/favicon.ico',
     apple: '/apple-touch-icon.png',
   },
   appLinks: {
@@ -150,7 +156,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* ✅ Preconnect to external domains */}
+        {/* ✅ Preconnect to external domains (TTFB optimization) */}
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -159,10 +165,31 @@ export default function RootLayout({
         />
         <link rel="dns-prefetch" href="https://api.openai.com" />
         <link rel="dns-prefetch" href="https://api.workos.com" />
+        
+        {/* ✅ Preconnect to Supabase for faster API calls (critical for TTFB) */}
+        <link rel="preconnect" href="https://*.supabase.co" />
         <link rel="dns-prefetch" href="https://*.supabase.co" />
+        
+        {/* ✅ Preconnect to app domain for dashboard data */}
+        <link rel="preconnect" href="https://tradeautopsy.in" />
+        <link rel="dns-prefetch" href="https://tradeautopsy.in" />
+        
+        {/* ✅ Favicon links for all browsers */}
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="shortcut icon" href="/favicon.ico" />
         
         {/* ✅ Preload critical assets */}
         <link rel="preload" href="/favicon.ico" as="image" />
+        
+        {/* ✅ Preload font for LCP text (critical for LCP optimization) */}
+        <link
+          rel="preload"
+          href="/_next/static/media/inter-var.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className={`${inter.variable} ${inter.className}`}>
         <ThemeProvider>
