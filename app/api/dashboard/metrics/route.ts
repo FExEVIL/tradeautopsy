@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { getCurrentProfileId } from '@/lib/profile-utils'
 
-// ✅ Edge runtime for sub-200ms cold starts (Vercel Edge Network)
-export const runtime = 'edge'
+// ✅ Removed edge runtime - Supabase server client uses cookies() which requires Node.js runtime
+// Edge runtime doesn't support cookies() from 'next/headers'
+// export const runtime = 'edge' // ❌ Removed - incompatible with Supabase server client
 
 // ✅ Cache at CDN level (Vercel Edge Network)
 export const revalidate = 60 // Revalidate every 60s
