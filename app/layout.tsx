@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { ToastProvider } from './dashboard/components/Toast'
 import { ThemeProvider } from '@/components/ThemeProvider'
@@ -198,6 +199,9 @@ export default function RootLayout({
         
         {/* ✅ Vercel Speed Insights - automatically tracks all Web Vitals */}
         <SpeedInsights />
+        
+        {/* ✅ Vercel Web Analytics - captures user interactions and page analytics */}
+        <Analytics />
         
         {/* ✅ Performance Monitor (development only) */}
         <PerformanceMonitor />
