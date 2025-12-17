@@ -102,8 +102,7 @@ export default async function DashboardPage(
   ])
 
   const { data: metricsData } = metricsRes
-  // ✅ tradesRes is already resolved from Promise.all, no need to await again
-  const { data: tradesRaw, error: tradesError } = tradesRes
+  const { data: tradesRaw, error: tradesError } = await tradesRes
 
   if (tradesError) {
     console.error('Trades fetch error:', tradesError)
