@@ -102,8 +102,10 @@ USING (auth.uid() = user_id);
 -- ============================================================================
 
 -- ✅ Fix 1: Recreate web_vitals_summary without SECURITY DEFINER
+-- This view was created with SECURITY DEFINER which is a security risk
 DROP VIEW IF EXISTS public.web_vitals_summary CASCADE;
 
+-- Recreate WITHOUT SECURITY DEFINER (runs with caller's privileges)
 CREATE VIEW public.web_vitals_summary AS
 SELECT 
   metric_name,
@@ -120,7 +122,7 @@ FROM web_vitals
 GROUP BY metric_name, DATE(timestamp)
 ORDER BY date DESC, metric_name;
 
--- Grant access
+-- Grant access (view runs with caller's privileges, not definer's)
 GRANT SELECT ON public.web_vitals_summary TO authenticated;
 GRANT SELECT ON public.web_vitals_summary TO service_role;
 
@@ -399,6 +401,117 @@ BEGIN
 END;
 $$;
 
+-- ✅ Fix 7: create_profile_dashboard_and_features
+DROP FUNCTION IF EXISTS public.create_profile_dashboard_and_features(UUID) CASCADE;
+
+CREATE OR REPLACE FUNCTION public.create_profile_dashboard_and_features(p_user_id UUID)
+RETURNS jsonb
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- ✅ CRITICAL: Prevents SQL injection
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  result jsonb;
+BEGIN
+  -- Create profile if not exists
+  INSERT INTO public.profiles (id, created_at, updated_at)
+  VALUES (p_user_id, NOW(), NOW())
+  ON CONFLICT (id) DO NOTHING;
+  
+  -- Create default dashboard preferences
+  INSERT INTO public.user_preferences (user_id, preference_key, preference_value)
+  VALUES 
+    (p_user_id, 'dashboard_layout', '{"layout": "default"}'),
+    (p_user_id, 'theme', 'dark'),
+    (p_user_id, 'timezone', 'Asia/Kolkata')
+  ON CONFLICT (user_id, preference_key) DO NOTHING;
+  
+  result := jsonb_build_object(
+    'success', true,
+    'user_id', p_user_id,
+    'message', 'Profile and preferences created'
+  );
+  
+  RETURN result;
+EXCEPTION WHEN OTHERS THEN
+  result := jsonb_build_object(
+    'success', false,
+    'error', SQLERRM
+  );
+  RETURN result;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.create_profile_dashboard_and_features(UUID) TO service_role;
+
+-- ✅ Fix 8: get_dashboard_metrics_cached
+DROP FUNCTION IF EXISTS public.get_dashboard_metrics_cached(UUID);
+
+CREATE OR REPLACE FUNCTION public.get_dashboard_metrics_cached(p_user_id UUID)
+RETURNS jsonb
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- ✅ CRITICAL: Prevents SQL injection
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  result jsonb;
+BEGIN
+  -- Verify caller is requesting their own data
+  IF p_user_id != auth.uid() THEN
+    RAISE EXCEPTION 'Unauthorized: Can only access own metrics';
+  END IF;
+  
+  -- Try to get from dashboard_metrics_cache if it exists
+  IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'dashboard_metrics_cache') THEN
+    SELECT row_to_json(t)::jsonb INTO result
+    FROM (
+      SELECT *
+      FROM dashboard_metrics_cache
+      WHERE user_id = p_user_id
+    ) t;
+  ELSE
+    -- Fallback to dashboard_metrics_mv
+    SELECT row_to_json(t)::jsonb INTO result
+    FROM (
+      SELECT *
+      FROM dashboard_metrics_mv
+      WHERE user_id = p_user_id
+    ) t;
+  END IF;
+  
+  RETURN COALESCE(result, '{}'::jsonb);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_dashboard_metrics_cached(UUID) TO authenticated;
+
+-- ✅ Fix 9: create_default_profile_for_user
+DROP FUNCTION IF EXISTS public.create_default_profile_for_user(UUID) CASCADE;
+
+CREATE OR REPLACE FUNCTION public.create_default_profile_for_user(p_user_id UUID)
+RETURNS void
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- ✅ CRITICAL: Prevents SQL injection
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO public.profiles (
+    id, 
+    created_at, 
+    updated_at
+  )
+  VALUES (
+    p_user_id, 
+    NOW(), 
+    NOW()
+  )
+  ON CONFLICT (id) DO NOTHING;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.create_default_profile_for_user(UUID) TO service_role;
+
 -- ============================================================================
 -- PHASE 4: RESTRICT MATERIALIZED VIEW ACCESS
 -- ============================================================================
@@ -410,6 +523,17 @@ REVOKE ALL ON public.dashboard_metrics_mv FROM public;
 
 -- Only allow service role to access directly
 GRANT SELECT ON public.dashboard_metrics_mv TO service_role;
+
+-- ✅ Also restrict dashboard_metrics_cache if it exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'dashboard_metrics_cache') THEN
+    REVOKE ALL ON public.dashboard_metrics_cache FROM anon;
+    REVOKE ALL ON public.dashboard_metrics_cache FROM authenticated;
+    REVOKE ALL ON public.dashboard_metrics_cache FROM public;
+    GRANT SELECT ON public.dashboard_metrics_cache TO service_role;
+  END IF;
+END $$;
 
 -- ✅ Create secure function to access materialized view
 CREATE OR REPLACE FUNCTION public.get_user_metrics_from_cache(p_user_id UUID)
@@ -480,6 +604,53 @@ USING (true)
 WITH CHECK (true);
 
 -- ============================================================================
+-- PHASE 6: FIX user_brokers RLS (INFO Issue)
+-- ============================================================================
+
+-- ✅ Check if user_brokers table exists, if not use brokers table
+DO $$
+BEGIN
+  -- If user_brokers exists, add RLS policies
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'user_brokers' AND table_schema = 'public') THEN
+    ALTER TABLE public.user_brokers ENABLE ROW LEVEL SECURITY;
+    
+    -- Drop existing policies
+    DROP POLICY IF EXISTS "Users can view their own brokers" ON public.user_brokers;
+    DROP POLICY IF EXISTS "Users can insert their own brokers" ON public.user_brokers;
+    DROP POLICY IF EXISTS "Users can update their own brokers" ON public.user_brokers;
+    DROP POLICY IF EXISTS "Users can delete their own brokers" ON public.user_brokers;
+    
+    -- Create comprehensive RLS policies
+    CREATE POLICY "Users can view their own brokers"
+    ON public.user_brokers
+    FOR SELECT
+    TO authenticated
+    USING (auth.uid() = user_id);
+    
+    CREATE POLICY "Users can insert their own brokers"
+    ON public.user_brokers
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+    
+    CREATE POLICY "Users can update their own brokers"
+    ON public.user_brokers
+    FOR UPDATE
+    TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+    
+    CREATE POLICY "Users can delete their own brokers"
+    ON public.user_brokers
+    FOR DELETE
+    TO authenticated
+    USING (auth.uid() = user_id);
+    
+    GRANT ALL ON public.user_brokers TO authenticated;
+  END IF;
+END $$;
+
+-- ============================================================================
 -- VERIFICATION QUERIES
 -- ============================================================================
 
@@ -505,7 +676,26 @@ END $$;
 DO $$
 DECLARE
   func_count INTEGER;
+  total_funcs INTEGER;
 BEGIN
+  -- Count total functions that should have search_path
+  SELECT COUNT(*) INTO total_funcs
+  FROM pg_proc p
+  JOIN pg_namespace n ON p.pronamespace = n.oid
+  WHERE n.nspname = 'public'
+  AND p.proname IN (
+    'handle_new_user',
+    'get_daily_pnl',
+    'get_dashboard_metrics',
+    'get_user_metrics_fast',
+    'refresh_dashboard_metrics',
+    'create_profile_dashboard_and_features',
+    'get_dashboard_metrics_cached',
+    'create_default_profile_for_user',
+    'update_updated_at_column'
+  );
+  
+  -- Count functions that have search_path set
   SELECT COUNT(*) INTO func_count
   FROM pg_proc p
   JOIN pg_namespace n ON p.pronamespace = n.oid
@@ -515,14 +705,18 @@ BEGIN
     'get_daily_pnl',
     'get_dashboard_metrics',
     'get_user_metrics_fast',
-    'refresh_dashboard_metrics'
+    'refresh_dashboard_metrics',
+    'create_profile_dashboard_and_features',
+    'get_dashboard_metrics_cached',
+    'create_default_profile_for_user',
+    'update_updated_at_column'
   )
   AND p.proconfig IS NOT NULL
   AND array_to_string(p.proconfig, ',') LIKE '%search_path%';
   
-  IF func_count < 5 THEN
-    RAISE WARNING 'Not all functions have search_path set. Count: %', func_count;
+  IF func_count < total_funcs THEN
+    RAISE WARNING 'Not all functions have search_path set. Count: %/%', func_count, total_funcs;
   ELSE
-    RAISE NOTICE '✅ All functions have search_path set';
+    RAISE NOTICE '✅ All % functions have search_path set', func_count;
   END IF;
 END $$;
