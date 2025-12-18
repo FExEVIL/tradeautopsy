@@ -5,7 +5,12 @@ CREATE OR REPLACE FUNCTION get_user_metrics_fast(
   p_start_date DATE DEFAULT NULL,
   p_end_date DATE DEFAULT NULL
 )
-RETURNS JSON AS $$
+RETURNS JSON
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- ✅ CRITICAL: Prevents SQL injection
+LANGUAGE plpgsql
+STABLE
+AS $$
 DECLARE
   result JSON;
 BEGIN
@@ -35,7 +40,7 @@ BEGIN
   
   RETURN result;
 END;
-$$ LANGUAGE plpgsql STABLE;
+$$;
 
 -- ✅ Grant execute permissions
 GRANT EXECUTE ON FUNCTION get_user_metrics_fast(UUID, UUID, DATE, DATE) TO authenticated;
@@ -76,7 +81,11 @@ ON dashboard_metrics_mv(user_id, profile_id) WHERE profile_id IS NOT NULL;
 -- ✅ Auto-refresh function for materialized view
 -- Returns JSONB for better error handling and logging
 CREATE OR REPLACE FUNCTION refresh_dashboard_metrics()
-RETURNS jsonb AS $$
+RETURNS jsonb
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- ✅ CRITICAL: Prevents SQL injection
+LANGUAGE plpgsql
+AS $$
 DECLARE
   start_time TIMESTAMP;
   end_time TIMESTAMP;
@@ -110,7 +119,7 @@ EXCEPTION WHEN OTHERS THEN
   
   RETURN result;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- ✅ Grant execute to service role (for cron jobs)
 GRANT EXECUTE ON FUNCTION refresh_dashboard_metrics() TO service_role;

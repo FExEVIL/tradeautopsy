@@ -69,7 +69,9 @@ RETURNS TABLE (
   date DATE,
   total_pnl DECIMAL,
   trade_count INTEGER
-) 
+)
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- ✅ CRITICAL: Prevents SQL injection
 LANGUAGE plpgsql
 STABLE
 AS $$
@@ -107,6 +109,8 @@ RETURNS TABLE (
   max_win DECIMAL,
   max_loss DECIMAL
 )
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- ✅ CRITICAL: Prevents SQL injection
 LANGUAGE plpgsql
 STABLE
 AS $$
