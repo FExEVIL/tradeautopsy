@@ -27,6 +27,7 @@ import {
   Users,
   UserCircle,
   Activity,
+  TestTube,
 } from 'lucide-react'
 
 type BaseItem = {
@@ -130,6 +131,7 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
         { id: 'economic-calendar', label: 'Economic Calendar', href: '/dashboard/economic-calendar', isLink: true, icon: Calendar },
         { id: 'morning-brief', label: 'Morning Brief', href: '/dashboard/morning-brief', isLink: true, icon: Target },
         { id: 'brokers', label: 'Brokers', href: '/dashboard/brokers', isLink: true, icon: Settings },
+        { id: 'backtesting', label: 'Backtesting', href: '/backtesting', isLink: true, icon: TestTube },
       ],
     },
   ], [])
