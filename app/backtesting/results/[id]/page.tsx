@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Card } from '@/components/ui/Card'
 import { LegalDisclaimers } from '@/components/backtesting/LegalDisclaimers'
-import { ArrowLeft, TrendingUp, TrendingDown, Target, BarChart3, Loader2 } from 'lucide-react'
+import { clientFetch } from '@/lib/utils/fetch'
+import { ArrowLeft, TrendingUp, TrendingDown, Target, BarChart3, Loader2, AlertCircle } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 export default function BacktestResultsPage() {
@@ -12,6 +13,7 @@ export default function BacktestResultsPage() {
   const params = useParams()
   const resultId = params.id as string
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
 
   useEffect(() => {
@@ -20,12 +22,14 @@ export default function BacktestResultsPage() {
 
   const fetchResult = async () => {
     try {
-      const response = await fetch(`/api/backtesting/results/${resultId}`)
-      if (!response.ok) throw new Error('Failed to fetch result')
-      const data = await response.json()
+      setLoading(true)
+      setError(null)
+
+      const data = await clientFetch(`/api/backtesting/results/${resultId}`)
       setResult(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching result:', error)
+      setError(error.message || 'Failed to fetch backtest result')
     } finally {
       setLoading(false)
     }
@@ -42,12 +46,32 @@ export default function BacktestResultsPage() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black text-white p-6">
+        <div className="max-w-7xl mx-auto">
+          <Card variant="darker" className="text-center py-12">
+            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-red-400 mb-2">Error Loading Results</h3>
+            <p className="text-gray-300 mb-4">{error}</p>
+            <button
+              onClick={fetchResult}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+            >
+              Retry
+            </button>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   if (!result) {
     return (
       <div className="min-h-screen bg-black text-white p-6">
         <div className="max-w-7xl mx-auto">
           <Card variant="darker" className="text-center py-12">
-            <p className="text-red-400">Backtest not found</p>
+            <p className="text-gray-400">Backtest not found</p>
           </Card>
         </div>
       </div>

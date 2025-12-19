@@ -1,8 +1,19 @@
 import { createClient } from '@/utils/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+
+// ✅ Add CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
 
 // GET - Fetch backtest configs and results
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -23,7 +34,7 @@ export async function GET(request: Request) {
 
       if (error) throw error
 
-      return NextResponse.json({ data })
+      return NextResponse.json({ data }, { headers: corsHeaders })
     }
 
     if (type === 'results') {
@@ -36,27 +47,33 @@ export async function GET(request: Request) {
 
       if (error) throw error
 
-      return NextResponse.json({ data })
+      return NextResponse.json({ data }, { headers: corsHeaders })
     }
 
-    return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Invalid type parameter' },
+      { status: 400, headers: corsHeaders }
+    )
   } catch (error: any) {
-    console.error('Error fetching backtesting data:', error)
+    console.error('[API] Error fetching backtesting data:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to fetch backtesting data' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     )
   }
 }
 
 // POST - Create new backtest config or run backtest
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401, headers: corsHeaders }
+      )
     }
 
     const body = await request.json()
@@ -74,7 +91,7 @@ export async function POST(request: Request) {
 
       if (error) throw error
 
-      return NextResponse.json({ data: config })
+      return NextResponse.json({ data: config }, { headers: corsHeaders })
     }
 
     if (action === 'run_backtest') {
@@ -98,15 +115,18 @@ export async function POST(request: Request) {
 
       if (error) throw error
 
-      return NextResponse.json({ data: result })
+      return NextResponse.json({ data: result }, { headers: corsHeaders })
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Invalid action' },
+      { status: 400, headers: corsHeaders }
+    )
   } catch (error: any) {
-    console.error('Error in backtesting POST:', error)
+    console.error('[API] Error in backtesting POST:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to process request' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     )
   }
 }

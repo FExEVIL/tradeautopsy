@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/auth/Input'
 import { LegalDisclaimers } from '@/components/backtesting/LegalDisclaimers'
-import { ArrowLeft, Play, Loader2 } from 'lucide-react'
+import { clientFetch } from '@/lib/utils/fetch'
+import { ArrowLeft, Play, Loader2, AlertCircle } from 'lucide-react'
 
 export default function HistoricalBacktestingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [config, setConfig] = useState({
     name: '',
     symbol: 'NIFTY',
@@ -58,17 +60,14 @@ export default function HistoricalBacktestingPage() {
         },
       }
 
-      const response = await fetch('/api/backtesting/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(backtestConfig),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to run backtest')
-      }
+      // ✅ Use clientFetch with proper error handling
+      const data = await clientFetch<{ success: boolean; resultId: string }>(
+        '/api/backtesting/run',
+        {
+          method: 'POST',
+          body: JSON.stringify(backtestConfig),
+        }
+      )
 
       // Verify resultId exists in response
       if (!data.resultId) {
@@ -79,7 +78,7 @@ export default function HistoricalBacktestingPage() {
       router.push(`/backtesting/results/${data.resultId}`)
     } catch (error: any) {
       console.error('Backtest error:', error)
-      alert(error.message || 'Failed to run backtest')
+      setError(error.message || 'Failed to run backtest')
     } finally {
       setLoading(false)
     }
@@ -103,6 +102,19 @@ export default function HistoricalBacktestingPage() {
             </p>
           </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <Card variant="darker" className="border-red-500/20 bg-red-500/5">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-400 mb-1">Error</p>
+                <p className="text-xs text-gray-400">{error}</p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Backtest Configuration */}
         <Card variant="darker">

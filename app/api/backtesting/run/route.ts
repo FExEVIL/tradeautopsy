@@ -3,24 +3,53 @@ import { createClient } from '@/utils/supabase/server';
 import { BacktestEngine } from '@/lib/backtesting/backtest-engine';
 import { BacktestConfig } from '@/types/backtesting';
 
+// ✅ Add CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function POST(request: NextRequest) {
   try {
+    console.log('[API] Starting backtest...');
+
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const config: BacktestConfig = await request.json();
-
-    // Validate config
-    if (!config.symbol || !config.startDate || !config.endDate) {
+    if (authError || !user) {
+      console.error('[API] Auth error:', authError);
       return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
+        { error: 'Unauthorized' },
+        { status: 401, headers: corsHeaders }
       );
     }
+
+    // ✅ Better request parsing with error handling
+    let config: BacktestConfig;
+    try {
+      config = await request.json();
+    } catch (parseError) {
+      console.error('[API] Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // ✅ Validate config
+    if (!config.symbol || !config.startDate || !config.endDate) {
+      return NextResponse.json(
+        { error: 'Missing required fields: symbol, startDate, endDate' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    console.log('[API] Config validated, saving to database...');
 
     // Save config to database
     const { data: savedConfig, error: configError } = await supabase
@@ -43,7 +72,12 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (configError) throw configError;
+    if (configError) {
+      console.error('[API] Database error saving config:', configError);
+      throw configError;
+    }
+
+    console.log('[API] Config saved, creating result entry...');
 
     // Create pending result entry
     const { data: resultEntry, error: resultError } = await supabase
@@ -56,12 +90,19 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (resultError) throw resultError;
+    if (resultError) {
+      console.error('[API] Database error creating result:', resultError);
+      throw resultError;
+    }
+
+    console.log('[API] Running backtest engine...');
 
     // Run backtest (in production, this should be queued)
     try {
       const engine = new BacktestEngine({ ...config, id: savedConfig.id });
       const result = await engine.runBacktest();
+
+      console.log('[API] Backtest complete, updating database...');
 
       // Update result in database
       await supabase
@@ -92,12 +133,24 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', resultEntry.id);
 
-      return NextResponse.json({
-        success: true,
-        resultId: resultEntry.id,
-        result,
-      });
+      if (updateError) {
+        console.error('[API] Error updating result:', updateError);
+        throw updateError;
+      }
+
+      console.log('[API] Backtest successful');
+
+      return NextResponse.json(
+        {
+          success: true,
+          resultId: resultEntry.id,
+          result,
+        },
+        { headers: corsHeaders }
+      );
     } catch (backtestError: any) {
+      console.error('[API] Backtest engine error:', backtestError);
+
       // Update status to failed
       await supabase
         .from('backtest_results')
@@ -110,10 +163,10 @@ export async function POST(request: NextRequest) {
       throw backtestError;
     }
   } catch (error: any) {
-    console.error('Backtest API error:', error);
+    console.error('[API] Unexpected error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to run backtest' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
