@@ -19,13 +19,65 @@ export default function HistoricalBacktestingPage() {
   })
 
   const handleBacktest = async () => {
+    if (!config.name || !config.startDate || !config.endDate) {
+      alert('Please fill in all required fields')
+      return
+    }
+
     setLoading(true)
-    // TODO: Implement backtest API call
-    setTimeout(() => {
-      setLoading(false)
+
+    try {
+      // Create a basic legs config for the strategy
+      const legsConfig = [
+        {
+          legNumber: 1,
+          instrumentType: 'call' as const,
+          action: 'buy' as const,
+          quantity: 1,
+          entryPrice: 0,
+          premium: 0,
+        },
+      ]
+
+      const backtestConfig = {
+        name: config.name,
+        symbol: config.symbol,
+        startDate: config.startDate,
+        endDate: config.endDate,
+        initialCapital: config.initialCapital,
+        strategyName: 'Custom Strategy',
+        legsConfig,
+        entryRules: {
+          daysToExpiry: 7,
+          strikeSelection: 'ATM' as const,
+        },
+        exitRules: {
+          targetProfitPct: 50,
+          stopLossPct: 100,
+          daysToExpiry: 1,
+        },
+      }
+
+      const response = await fetch('/api/backtesting/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(backtestConfig),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to run backtest')
+      }
+
       // Navigate to results page
-      router.push('/backtesting/results')
-    }, 2000)
+      router.push(`/backtesting/results/${data.resultId}`)
+    } catch (error: any) {
+      console.error('Backtest error:', error)
+      alert(error.message || 'Failed to run backtest')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
