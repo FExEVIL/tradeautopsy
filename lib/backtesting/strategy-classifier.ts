@@ -16,7 +16,7 @@ const STRATEGY_PATTERNS: StrategyPattern[] = [
   {
     name: 'Long Call',
     category: 'bullish',
-    riskProfile: 'undefined',
+    riskProfile: 'defined', // Max loss = premium paid
     matcher: (legs) => 
       legs.length === 1 && 
       legs[0].instrumentType === 'call' && 
@@ -25,7 +25,7 @@ const STRATEGY_PATTERNS: StrategyPattern[] = [
   {
     name: 'Short Call',
     category: 'bearish',
-    riskProfile: 'undefined',
+    riskProfile: 'undefined', // Unlimited loss potential
     matcher: (legs) => 
       legs.length === 1 && 
       legs[0].instrumentType === 'call' && 
@@ -34,7 +34,7 @@ const STRATEGY_PATTERNS: StrategyPattern[] = [
   {
     name: 'Long Put',
     category: 'bearish',
-    riskProfile: 'undefined',
+    riskProfile: 'defined', // Max loss = premium paid
     matcher: (legs) => 
       legs.length === 1 && 
       legs[0].instrumentType === 'put' && 
@@ -43,7 +43,7 @@ const STRATEGY_PATTERNS: StrategyPattern[] = [
   {
     name: 'Short Put',
     category: 'bullish',
-    riskProfile: 'undefined',
+    riskProfile: 'undefined', // Unlimited loss potential (down to zero)
     matcher: (legs) => 
       legs.length === 1 && 
       legs[0].instrumentType === 'put' && 
@@ -122,7 +122,7 @@ const STRATEGY_PATTERNS: StrategyPattern[] = [
   {
     name: 'Long Straddle',
     category: 'volatile',
-    riskProfile: 'undefined',
+    riskProfile: 'defined', // Max loss = premium paid for both legs
     matcher: (legs) => {
       if (legs.length !== 2) return false;
       const call = legs.find(l => l.instrumentType === 'call' && l.action === 'buy');
@@ -148,7 +148,7 @@ const STRATEGY_PATTERNS: StrategyPattern[] = [
   {
     name: 'Long Strangle',
     category: 'volatile',
-    riskProfile: 'undefined',
+    riskProfile: 'defined', // Max loss = premium paid for both legs
     matcher: (legs) => {
       if (legs.length !== 2) return false;
       const call = legs.find(l => l.instrumentType === 'call' && l.action === 'buy');
@@ -296,11 +296,17 @@ function determineRiskProfile(legs: TradeLeg[]): RiskType {
     return 'defined';
   }
   
-  // If only short options, undefined risk
+  // If only short options, undefined risk (unlimited loss potential)
   if (hasShortOptions && !hasLongOptions) {
     return 'undefined';
   }
   
-  // If only long options, undefined risk (theoretically unlimited profit)
+  // If only long options, defined risk (max loss = premium paid)
+  // Long options have limited risk because you can only lose the premium paid
+  if (hasLongOptions && !hasShortOptions) {
+    return 'defined';
+  }
+  
+  // Default to undefined for edge cases
   return 'undefined';
 }

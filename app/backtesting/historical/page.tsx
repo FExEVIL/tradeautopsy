@@ -70,7 +70,12 @@ export default function HistoricalBacktestingPage() {
         throw new Error(data.error || 'Failed to run backtest')
       }
 
-      // Navigate to results page
+      // Verify resultId exists in response
+      if (!data.resultId) {
+        throw new Error('Backtest completed but no result ID returned')
+      }
+
+      // Navigate to results page with the result ID
       router.push(`/backtesting/results/${data.resultId}`)
     } catch (error: any) {
       console.error('Backtest error:', error)
