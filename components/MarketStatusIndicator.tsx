@@ -32,27 +32,29 @@ export function MarketStatusIndicator() {
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-all ${
+      className={`flex items-center gap-3 px-4 h-12 rounded-lg border transition-all ${
         isOpen
-          ? 'bg-green-500/10 border-green-500/20'
-          : 'bg-red-500/10 border-red-500/20'
+          ? 'bg-green-subtle border-green-border'
+          : 'bg-red-subtle border-red-border'
       }`}
     >
       {/* Simple Blinking Dot - 8px */}
       <div
         className={`w-2 h-2 rounded-full ${
-          isOpen ? 'bg-green-500' : 'bg-red-500'
+          isOpen ? 'bg-green-primary' : 'bg-red-primary'
         } animate-pulse`}
         style={{ animationDuration: '2s' }}
       />
 
       {/* Status Text */}
       <div className="flex flex-col">
-        <span className="text-sm font-medium text-white">
+        <span className={`text-sm font-medium ${
+          isOpen ? 'text-green-text' : 'text-red-text'
+        }`}>
           {statusText}
         </span>
         {nextEventTime && (
-          <span className="text-xs text-gray-500">
+          <span className="text-[10px] text-text-muted">
             {nextEvent} {getTimeRemaining()}
           </span>
         )}

@@ -23,7 +23,7 @@ export function MarketStatusIndicatorMobile() {
 
   return (
     <div
-      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-all ${
+      className={`flex items-center gap-2.5 px-3 h-12 rounded-lg border transition-all ${
         isOpen
           ? 'bg-green-500/10 border-green-500/20'
           : 'bg-red-500/10 border-red-500/20'

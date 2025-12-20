@@ -109,16 +109,16 @@ export function StatCard({
   }
 
   const cardVariants = {
-    base: 'bg-white/5',
-    dark: 'bg-[#0F0F0F]',
-    darker: 'bg-[#0A0A0A]',
+    base: 'bg-[#0a0a0a]',
+    dark: 'bg-[#0a0a0a]',
+    darker: 'bg-[#0a0a0a]',
   }
 
   return (
     <div
       className={cn(
         cardVariants[variant],
-        'border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all min-h-[120px]',
+        'border border-[#1a1a1a] rounded-lg p-6 hover:border-[#262626] transition-colors min-h-[120px]',
         className
       )}
     >

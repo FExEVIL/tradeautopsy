@@ -28,6 +28,8 @@ import {
   UserCircle,
   Activity,
   TestTube,
+  Lightbulb,
+  GraduationCap,
 } from 'lucide-react'
 
 type BaseItem = {
@@ -101,21 +103,25 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
       title: 'IN PROGRESS',
       items: [
         { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85, href: '/dashboard', icon: LayoutDashboard, isLink: true },
-        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/dashboard/behavioral', icon: BrainCircuit, isLink: true },
+      ],
+    },
+    {
+      title: 'AI ANALYSIS',
+      items: [
+        { id: 'tai', label: 'TAI', time: '1m', stats: 'AI Powered', href: '/tai/insights', icon: Lightbulb, isLink: true },
+        { id: 'behavioral-analysis', label: 'Behavioral Analysis', status: 'Processing', progress: 60, href: '/behavioral-analysis', icon: BrainCircuit, isLink: true },
       ],
     },
     {
       title: 'READY FOR REVIEW',
       items: [
-        { id: 'intelligence', label: 'TAI', time: '1m', stats: 'AI Powered', href: '/dashboard/intelligence', icon: Activity, isLink: true },
         { id: 'performance', label: 'Performance Analytics', time: '2m', stats: '+₹644 +12%', href: '/dashboard/performance', icon: TrendingUp, isLink: true },
         { id: 'strategy-analysis', label: 'Strategy Analysis', time: '1m', stats: '4 strategies', href: '/dashboard/strategy-analysis', icon: BarChart3, isLink: true },
         { id: 'comparisons', label: 'Comparisons', time: '2m', stats: 'Top 75%', href: '/dashboard/comparisons', icon: Users, isLink: true },
-        { id: 'risk', label: 'Risk Management', time: '3m', stats: 'Sharpe 1.2', href: '/dashboard/risk', icon: Shield, isLink: true },
-        { id: 'goals', label: 'Goals & Milestones', time: '1m', stats: '2 active', href: '/dashboard/goals', icon: Target, isLink: true },
-        // Chart Analysis moved to Journal tab
-        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/dashboard/tilt', icon: AlertTriangle, isLink: true },
-        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/dashboard/emotional', icon: HeartPulse, isLink: true },
+        { id: 'risk', label: 'Risk Management', time: '3m', stats: 'Sharpe 1.2', href: '/risk-management', icon: Shield, isLink: true },
+        { id: 'goals', label: 'Goals & Milestones', time: '1m', stats: '2 active', href: '/goals', icon: Target, isLink: true },
+        { id: 'tilt', label: 'Tilt Assessment', time: '1m', stats: 'Low risk 25%', href: '/tilt-assessment', icon: AlertTriangle, isLink: true },
+        { id: 'emotional', label: 'Emotional Patterns', time: '3m', stats: '+5 -2', href: '/emotional-patterns', icon: HeartPulse, isLink: true },
       ],
     },
     {
@@ -142,10 +148,10 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
       <div className="fixed left-0 top-1/2 -translate-y-1/2 z-50">
         <button
           onClick={handleToggleHide}
-          className="w-10 h-16 bg-gray-800 hover:bg-gray-700 rounded-r-lg flex items-center justify-center transition-colors"
+          className="w-10 h-16 bg-border-subtle hover:bg-border-default rounded-r-lg flex items-center justify-center transition-colors border-r border-border-default"
           title="Show Sidebar"
         >
-          <ChevronRight className="w-5 h-5 text-gray-400" />
+          <ChevronRight className="w-5 h-5 text-text-tertiary" />
         </button>
       </div>
     )
@@ -153,7 +159,7 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
 
   return (
     <div
-      className="w-80 h-screen bg-[#1b1912] flex flex-col relative overflow-hidden"
+      className="w-80 h-screen bg-bg-card flex flex-col relative overflow-hidden border-r border-border-subtle"
       style={{
         transform: 'translateZ(0)', // Force GPU acceleration
       }}
@@ -170,16 +176,16 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
       <div className={`${isCollapsed ? 'p-4 pt-6' : 'p-6 pt-8'} flex items-center justify-center transition-all duration-200`}>
         {!isCollapsed ? (
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <span className="text-black font-bold text-base">T</span>
             </div>
             <div>
-              <h1 className="text-white font-semibold text-sm">TradeAutopsy</h1>
-              <p className="text-[10px] text-gray-500">Trading Analytics</p>
+              <h1 className="text-text-primary font-semibold text-sm">TradeAutopsy</h1>
+              <p className="text-[10px] text-text-muted">Trading Analytics</p>
             </div>
           </Link>
         ) : (
-          <Link href="/dashboard" className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+          <Link href="/dashboard" className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
             <span className="text-black font-bold text-base">T</span>
           </Link>
         )}
@@ -190,14 +196,15 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
         {sections.map((section, idx) => (
           <div key={idx} className={`${idx > 0 ? 'mt-6' : ''}`}>
             {!isCollapsed && (
-              <h3 className="text-[9px] font-semibold text-gray-600 uppercase tracking-wider mb-3 px-2">
+              <h3 className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3 px-2">
                 {section.title} {section.items.length}
               </h3>
             )}
             <div className="space-y-2">
               {section.items.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href
+                // Check if pathname matches exactly or is a child route
+                const isActive = pathname === item.href || (pathname && pathname.startsWith(item.href + '/'))
 
                 const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
                   if (item.href !== pathname) {
@@ -214,12 +221,12 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
                     href={item.href}
                     onClick={handleClick}
                     className={`
-                      flex items-center rounded-xl transition-all group relative
+                      flex items-center rounded-lg transition-all group relative
                       ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'}
                       ${
                         isActive
-                          ? 'bg-white/10 text-white'
-                          : 'text-gray-400 hover:bg-white/5 hover:text-gray-300'
+                          ? 'bg-border-subtle text-text-primary'
+                          : 'text-text-tertiary hover:bg-border-subtle hover:text-text-primary'
                       }
                       ${isPending ? 'opacity-70' : ''}
                     `}
@@ -228,8 +235,10 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
                     {/* Icon */}
                     <Icon
                       className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0 ${
-                        isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
-                      }`}
+                        isActive 
+                          ? 'text-green-primary' 
+                          : 'text-text-tertiary group-hover:text-purple-primary'
+                      } transition-colors`}
                     />
 
                     {/* Content (only when expanded) */}
@@ -238,19 +247,19 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
                         <div className="flex items-center justify-between mb-0.5">
                           <span className="font-medium text-sm truncate">{item.label}</span>
                           {'time' in item && item.time && (
-                            <span className="text-[10px] text-gray-500 ml-2">{item.time}</span>
+                            <span className="text-[10px] text-text-muted ml-2">{item.time}</span>
                           )}
                         </div>
 
                         {'progress' in item ? (
                           <div className="space-y-1">
                             <div className="flex justify-between text-[10px]">
-                              <span className="text-gray-500">{item.status}</span>
-                              <span className="text-gray-600">{item.progress}%</span>
+                              <span className="text-text-tertiary">{item.status}</span>
+                              <span className="text-text-muted">{item.progress}%</span>
                             </div>
-                            <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+                            <div className="w-full h-1 bg-border-subtle rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-blue-500 transition-all duration-500 rounded-full"
+                                className="h-full bg-blue-primary transition-all duration-500 rounded-full"
                                 style={{ width: `${item.progress}%` }}
                               />
                             </div>
@@ -258,15 +267,20 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
                         ) : (
                           'stats' in item &&
                           item.stats && (
-                            <div className="text-[11px] text-green-500/80 font-medium">{item.stats}</div>
+                            <div className="text-[11px] text-green-text font-medium">{item.stats}</div>
                           )
                         )}
                       </div>
                     )}
 
+                    {/* Badge indicator when collapsed (for AI Powered items) */}
+                    {isCollapsed && 'stats' in item && item.stats === 'AI Powered' && (
+                      <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-purple-primary rounded-full border border-bg-card" />
+                    )}
+
                     {/* Active indicator dot (collapsed mode) */}
                     {isCollapsed && isActive && (
-                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-l-full" />
+                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-primary rounded-l-full" />
                     )}
                   </Link>
                 )
@@ -280,17 +294,17 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
           <button
             onClick={handleToggleCollapse}
             className={`
-              flex items-center rounded-xl transition-all group relative w-full
+              flex items-center rounded-lg transition-all group relative w-full
               ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'}
-              text-gray-400 hover:bg-white/5 hover:text-gray-300
+              text-text-tertiary hover:bg-border-subtle hover:text-text-primary
             `}
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
             {isCollapsed ? (
-              <ChevronRight className="w-6 h-6 flex-shrink-0 text-gray-400 group-hover:text-gray-300" />
+              <ChevronRight className="w-6 h-6 flex-shrink-0 text-text-tertiary group-hover:text-text-primary" />
             ) : (
               <>
-                <ChevronLeft className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-gray-300" />
+                <ChevronLeft className="w-5 h-5 flex-shrink-0 text-text-tertiary group-hover:text-text-primary" />
                 <div className="flex-1 ml-3 min-w-0">
                   <span className="font-medium text-sm">Collapse</span>
                 </div>
@@ -300,10 +314,10 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
           {!isCollapsed && (
             <button
               onClick={handleToggleHide}
-              className="flex items-center px-3 py-2.5 rounded-xl transition-all group relative w-full text-gray-400 hover:bg-white/5 hover:text-gray-300"
+              className="flex items-center px-3 py-2.5 rounded-lg transition-all group relative w-full text-text-tertiary hover:bg-border-subtle hover:text-text-primary"
               title="Hide Sidebar"
             >
-              <X className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-gray-300" />
+              <X className="w-5 h-5 flex-shrink-0 text-text-tertiary group-hover:text-text-primary" />
               <div className="flex-1 ml-3 min-w-0">
                 <span className="font-medium text-sm">Hide</span>
               </div>
@@ -316,7 +330,7 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
       <div className={`${isCollapsed ? 'px-3 pb-4' : 'p-4'} transition-opacity duration-200`}>
         <Link
           href="/dashboard/import"
-          className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-800/70 hover:bg-gray-700/70 text-gray-300 rounded-lg text-sm font-medium transition-colors ${isCollapsed ? 'px-3' : ''}`}
+          className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-border-subtle hover:bg-border-default text-text-secondary rounded-lg text-sm font-medium transition-colors border border-border-default ${isCollapsed ? 'px-3' : ''}`}
         >
           <Plus className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'}`} />
           {!isCollapsed && <span>Import New Trades</span>}

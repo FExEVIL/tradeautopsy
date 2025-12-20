@@ -33,7 +33,6 @@ export function MobileSidebar({ activeSection = 'overview', onSectionChange }: M
       title: 'IN PROGRESS',
       items: [
         { id: 'overview', label: 'Overview', status: 'Analyzing', progress: 85 },
-        { id: 'behavioral', label: 'Behavioral Analysis', status: 'Processing', progress: 60 },
       ]
     },
     {

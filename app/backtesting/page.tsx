@@ -13,7 +13,12 @@ import {
   Calculator,
   Play,
   FileText,
-  AlertCircle
+  AlertCircle,
+  HelpCircle,
+  Lightbulb,
+  BookOpen,
+  ArrowRight,
+  PlayCircle
 } from 'lucide-react'
 
 interface BacktestSummary {
@@ -29,11 +34,21 @@ interface BacktestSummary {
   created_at: string
 }
 
+interface GuidanceStep {
+  id: string
+  title: string
+  description: string
+  completed: boolean
+  action: string
+  href: string
+}
+
 export default function BacktestingPage() {
   const router = useRouter()
   const [recentBacktests, setRecentBacktests] = useState<BacktestSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showGuide, setShowGuide] = useState(true)
 
   useEffect(() => {
     fetchRecentBacktests()
@@ -88,6 +103,41 @@ export default function BacktestingPage() {
     },
   ]
 
+  const guidanceSteps: GuidanceStep[] = [
+    {
+      id: '1',
+      title: 'Build Your Strategy',
+      description: 'Create a multi-leg options strategy with visual payoff diagrams',
+      completed: false,
+      action: 'Start Building',
+      href: '/backtesting/strategy-builder',
+    },
+    {
+      id: '2',
+      title: 'Configure Backtest',
+      description: 'Set entry/exit rules, date range, and capital allocation',
+      completed: false,
+      action: 'Configure',
+      href: '/backtesting/historical',
+    },
+    {
+      id: '3',
+      title: 'Run Backtest',
+      description: 'Test your strategy against historical data',
+      completed: false,
+      action: 'Run Test',
+      href: '/backtesting/historical',
+    },
+    {
+      id: '4',
+      title: 'Analyze Results',
+      description: 'Review performance metrics, equity curve, and trade details',
+      completed: false,
+      action: 'View Results',
+      href: '/backtesting',
+    },
+  ]
+
   const quickActions = [
     {
       title: 'Quick Backtest',
@@ -108,11 +158,91 @@ export default function BacktestingPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold mb-2">Backtesting Module</h1>
-          <p className="text-gray-400">
-            Test and analyze options strategies with historical data and advanced analytics
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Backtesting Module</h1>
+              <p className="text-gray-400">
+                Test and analyze options strategies with historical data and advanced analytics
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowGuide(!showGuide)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <HelpCircle className="w-5 h-5" />
+              {showGuide ? 'Hide Guide' : 'Show Guide'}
+            </button>
+          </div>
         </div>
+
+        {/* Getting Started Guide */}
+        {showGuide && (
+          <Card variant="darker" className="border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="p-3 bg-blue-500/20 rounded-lg">
+                <Lightbulb className="w-6 h-6 text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-white mb-2">
+                  Getting Started with Backtesting
+                </h2>
+                <p className="text-gray-300 mb-4">
+                  Follow these steps to backtest your trading strategies and improve your performance.
+                  Each step builds on the previous one.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {guidanceSteps.map((step, index) => (
+                <div
+                  key={step.id}
+                  className={`bg-gray-900 border rounded-lg p-5 transition-all hover:scale-102 ${
+                    step.completed ? 'border-green-500/50' : 'border-gray-800'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-full text-lg font-bold ${
+                      step.completed 
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {step.completed ? '✓' : index + 1}
+                    </div>
+
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-white mb-1">{step.title}</h3>
+                      <p className="text-sm text-gray-400 mb-3">{step.description}</p>
+
+                      <button
+                        onClick={() => router.push(step.href)}
+                        className={`inline-flex items-center gap-2 text-sm font-medium transition-colors ${
+                          step.completed
+                            ? 'text-green-400 hover:text-green-300'
+                            : 'text-blue-400 hover:text-blue-300'
+                        }`}
+                      >
+                        {step.action}
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex items-center gap-3">
+              <BookOpen className="w-5 h-5 text-gray-400" />
+              <span className="text-sm text-gray-400">
+                New to backtesting?{' '}
+                <a href="#tutorial" className="text-blue-400 hover:text-blue-300 underline">
+                  Watch our 5-minute tutorial
+                </a>
+              </span>
+            </div>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -193,16 +323,32 @@ export default function BacktestingPage() {
               <p className="text-gray-400">Loading backtests...</p>
             </Card>
           ) : recentBacktests.length === 0 ? (
-            <Card variant="darker" className="text-center py-12">
-              <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">No backtests yet</p>
-              <button
-                onClick={() => router.push('/backtesting/historical')}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                <Play className="w-4 h-4" />
-                Run Your First Backtest
-              </button>
+            <Card variant="darker" className="text-center py-16">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-800 rounded-full mb-6">
+                <PlayCircle className="w-10 h-10 text-gray-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                No Backtests Yet
+              </h3>
+              <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                Start by building your first strategy, then run a backtest to see how it would have performed historically.
+              </p>
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => router.push('/backtesting/strategy-builder')}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center gap-2 transition-colors"
+                >
+                  <Layers className="w-5 h-5" />
+                  Build Strategy First
+                </button>
+                <button
+                  onClick={() => router.push('/backtesting/historical')}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg inline-flex items-center gap-2 transition-colors"
+                >
+                  <PlayCircle className="w-5 h-5" />
+                  Run Backtest
+                </button>
+              </div>
             </Card>
           ) : (
             <div className="space-y-3">
@@ -255,6 +401,49 @@ export default function BacktestingPage() {
             </div>
           )}
         </div>
+
+        {/* Educational Resources */}
+        <Card variant="darker" className="border-purple-500/30 bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-purple-400" />
+            Learning Resources
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a
+              href="#video-tutorial"
+              className="bg-gray-900/50 border border-gray-700 hover:border-purple-500/50 rounded-lg p-4 transition-colors"
+            >
+              <PlayCircle className="w-8 h-8 text-purple-400 mb-3" />
+              <h3 className="font-semibold text-white mb-1">Video Tutorial</h3>
+              <p className="text-sm text-gray-400">
+                5-minute guide to backtesting basics
+              </p>
+            </a>
+
+            <a
+              href="#strategy-examples"
+              className="bg-gray-900/50 border border-gray-700 hover:border-purple-500/50 rounded-lg p-4 transition-colors"
+            >
+              <Layers className="w-8 h-8 text-blue-400 mb-3" />
+              <h3 className="font-semibold text-white mb-1">Strategy Examples</h3>
+              <p className="text-sm text-gray-400">
+                Pre-built strategies to get started
+              </p>
+            </a>
+
+            <a
+              href="#best-practices"
+              className="bg-gray-900/50 border border-gray-700 hover:border-purple-500/50 rounded-lg p-4 transition-colors"
+            >
+              <Lightbulb className="w-8 h-8 text-yellow-400 mb-3" />
+              <h3 className="font-semibold text-white mb-1">Best Practices</h3>
+              <p className="text-sm text-gray-400">
+                Tips for accurate backtesting
+              </p>
+            </a>
+          </div>
+        </Card>
 
         {/* Legal Disclaimers */}
         <LegalDisclaimers />

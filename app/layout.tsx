@@ -8,6 +8,8 @@ import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 import { APP_URL } from '@/lib/constants'
 import { reportWebVitals } from '@/lib/vitals'
 import PerformanceMonitor from '@/components/PerformanceMonitor'
+import { OnboardingProvider } from '@/contexts/OnboardingContext'
+import OnboardingWidget from '@/components/OnboardingWidget'
 
 // ✅ Export reportWebVitals for Next.js automatic integration
 export { reportWebVitals }
@@ -190,10 +192,13 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${inter.className}`}>
         <ThemeProvider>
-          <ToastProvider>
-            {children}
-            <KeyboardShortcuts />
-          </ToastProvider>
+          <OnboardingProvider>
+            <ToastProvider>
+              {children}
+              <KeyboardShortcuts />
+              <OnboardingWidget />
+            </ToastProvider>
+          </OnboardingProvider>
         </ThemeProvider>
         
         {/* ✅ Vercel Speed Insights - automatically tracks all Web Vitals */}

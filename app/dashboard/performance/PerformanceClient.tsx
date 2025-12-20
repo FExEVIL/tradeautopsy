@@ -52,15 +52,15 @@ function MetricCard({ label, value, subtext, icon: Icon, trend }: any) {
   const isNeutral = trend === 'neutral'
   
   return (
-    <div className="p-5 rounded-xl bg-[#0F0F0F] border border-white/5 hover:border-white/10 transition-all group">
-      <div className="flex justify-between items-start mb-2">
+    <div className="p-6 rounded-lg bg-[#0a0a0a] border border-[#1a1a1a] hover:border-[#262626] transition-colors group">
+      <div className="flex justify-between items-start mb-4">
         <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">{label}</span>
-        <div className={`p-2 rounded-lg ${isNeutral ? 'bg-blue-500/10' : bgClass}`}>
-          <Icon className={`w-4 h-4 ${isNeutral ? 'text-blue-400' : colorClass}`} />
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isNeutral ? 'bg-blue-500/10' : bgClass}`}>
+          <Icon className={`w-5 h-5 ${isNeutral ? 'text-blue-400' : colorClass}`} />
         </div>
       </div>
-      <div className="text-2xl font-bold text-white mb-1">{value}</div>
-      {subtext && <div className="text-[10px] text-gray-500">{subtext}</div>}
+      <div className="text-4xl font-bold mb-2">{value}</div>
+      {subtext && <div className="text-sm text-gray-500">{subtext}</div>}
     </div>
   )
 }

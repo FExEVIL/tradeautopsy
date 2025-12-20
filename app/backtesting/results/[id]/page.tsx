@@ -137,7 +137,7 @@ export default function BacktestResultsPage() {
               <p className="text-xs text-gray-400">Total P&L</p>
             </div>
             <p className={`text-2xl font-bold ${displayResults.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              ₹{displayResults.totalPnL.toLocaleString()}
+              ₹{displayResults.totalPnL.toLocaleString('en-IN')}
             </p>
           </Card>
 
@@ -146,7 +146,7 @@ export default function BacktestResultsPage() {
               <TrendingDown className="w-4 h-4 text-red-400" />
               <p className="text-xs text-gray-400">Max Drawdown</p>
             </div>
-            <p className="text-2xl font-bold text-red-400">₹{Math.abs(displayResults.maxDrawdown).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-red-400">₹{Math.abs(displayResults.maxDrawdown).toLocaleString('en-IN')}</p>
           </Card>
         </div>
 
@@ -157,11 +157,11 @@ export default function BacktestResultsPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-400">Average Win</span>
-                <span className="text-sm font-semibold text-green-400">₹{displayResults.avgWin.toLocaleString()}</span>
+                <span className="text-sm font-semibold text-green-400">₹{displayResults.avgWin.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-400">Average Loss</span>
-                <span className="text-sm font-semibold text-red-400">₹{Math.abs(displayResults.avgLoss).toLocaleString()}</span>
+                <span className="text-sm font-semibold text-red-400">₹{Math.abs(displayResults.avgLoss).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-400">Profit Factor</span>
@@ -225,7 +225,7 @@ export default function BacktestResultsPage() {
                           <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2 shadow-lg">
                             <p className="text-xs text-gray-400">{payload[0].payload.date}</p>
                             <p className={`text-sm font-semibold ${displayResults.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              Equity: ₹{payload[0].value?.toLocaleString()}
+                              Equity: ₹{payload[0].value?.toLocaleString('en-IN')}
                             </p>
                           </div>
                         )

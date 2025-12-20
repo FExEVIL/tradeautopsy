@@ -7,19 +7,22 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 
 export function DashboardHeader() {
   return (
-    <div className="sticky top-0 z-50 bg-black/80 backdrop-blur-sm border-b border-gray-800 px-6 py-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Left side - can add page title or breadcrumbs here */}
+    <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-bg-header border-b border-border-subtle">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+          <span className="text-black font-bold text-lg">T</span>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Profile Switcher - Prominently displayed with other controls */}
-          <ProfileSwitcher />
-          <MarketStatus />
-          <NotificationBell />
-          <ThemeToggle />
+        <div>
+          <h1 className="text-text-primary font-semibold text-base">TradeAutopsy</h1>
+          <p className="text-text-muted text-xs">Trading Analytics</p>
         </div>
       </div>
-    </div>
+      <div className="flex items-center gap-3">
+        <ProfileSwitcher />
+        <MarketStatus />
+        <NotificationBell />
+        <ThemeToggle />
+      </div>
+    </header>
   )
 }

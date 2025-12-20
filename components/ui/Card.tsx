@@ -10,12 +10,12 @@ interface CardProps {
 
 export function Card({ children, variant = 'base', className, onClick }: CardProps) {
   const variants = {
-    base: 'bg-white/5 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all',
-    dark: 'bg-[#0F0F0F] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all',
-    darker: 'bg-[#0A0A0A] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all',
-    profit: 'bg-green-500/10 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all',
-    loss: 'bg-red-500/10 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all',
-    highlighted: 'bg-white/5 border border-blue-500/30 rounded-xl p-5 shadow-lg shadow-blue-500/10',
+    base: 'bg-bg-card border border-border-subtle rounded-lg p-6 hover:border-border-default transition-colors',
+    dark: 'bg-bg-card border border-border-subtle rounded-lg p-6 hover:border-border-default transition-colors',
+    darker: 'bg-bg-card border border-border-subtle rounded-lg p-6 hover:border-border-default transition-colors',
+    profit: 'bg-green-subtle border border-green-border rounded-lg p-6 hover:border-green-primary transition-colors',
+    loss: 'bg-red-subtle border border-red-border rounded-lg p-6 hover:border-red-primary transition-colors',
+    highlighted: 'bg-bg-card border border-blue-border rounded-lg p-6 shadow-lg shadow-blue-primary/10',
   }
 
   return (

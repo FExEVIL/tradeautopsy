@@ -107,7 +107,7 @@ export function DailyMetricsCards({ metrics }: { metrics: Metrics }) {
         return (
           <div
             key={idx}
-            className={`${card.bgColor} border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all`}
+            className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-6 hover:border-[#262626] transition-colors"
           >
             <div className="flex justify-between items-start mb-2">
               <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">

@@ -1,6 +1,93 @@
 @import "tailwindcss";
 
+@theme {
+  /* Define colors for Tailwind v4 to recognize bg-bg-card pattern */
+  --color-bg-app: #000000;
+  --color-bg-card: #0a0a0a;
+  --color-bg-card-hover: #121212;
+  --color-bg-section: #050505;
+  --color-bg-header: #0d0d0d;
+  
+  --color-border-subtle: #1a1a1a;
+  --color-border-default: #262626;
+  --color-border-emphasis: #333333;
+  
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a3a3a3;
+  --color-text-tertiary: #737373;
+  --color-text-muted: #525252;
+  --color-text-disabled: #404040;
+  
+  --color-green-primary: #22c55e;
+  --color-green-hover: #16a34a;
+  --color-green-subtle: rgba(34, 197, 94, 0.1);
+  --color-green-border: rgba(34, 197, 94, 0.3);
+  --color-green-text: #4ade80;
+  
+  --color-red-primary: #ef4444;
+  --color-red-hover: #dc2626;
+  --color-red-subtle: rgba(239, 68, 68, 0.1);
+  --color-red-border: rgba(239, 68, 68, 0.3);
+  --color-red-text: #f87171;
+  
+  --color-purple-primary: #a855f7;
+  --color-purple-hover: #9333ea;
+  --color-purple-subtle: rgba(168, 85, 247, 0.1);
+  --color-purple-border: rgba(168, 85, 247, 0.3);
+  
+  --color-blue-primary: #3b82f6;
+  --color-blue-subtle: rgba(59, 130, 246, 0.1);
+  --color-blue-border: rgba(59, 130, 246, 0.3);
+  
+  --color-yellow-primary: #f59e0b;
+  --color-yellow-subtle: rgba(245, 158, 11, 0.1);
+  --color-yellow-border: rgba(245, 158, 11, 0.3);
+}
+
 :root {
+  /* Design System Variables */
+  --bg-app: #000000;
+  --bg-card: #0a0a0a;
+  --bg-card-hover: #121212;
+  --bg-section: #050505;
+  --bg-header: #0d0d0d;
+  
+  --border-subtle: #1a1a1a;
+  --border-default: #262626;
+  --border-emphasis: #333333;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #737373;
+  --text-muted: #525252;
+  --text-disabled: #404040;
+  
+  --green-primary: #22c55e;
+  --green-hover: #16a34a;
+  --green-subtle: rgba(34, 197, 94, 0.1);
+  --green-border: rgba(34, 197, 94, 0.3);
+  --green-text: #4ade80;
+  
+  --red-primary: #ef4444;
+  --red-hover: #dc2626;
+  --red-subtle: rgba(239, 68, 68, 0.1);
+  --red-border: rgba(239, 68, 68, 0.3);
+  --red-text: #f87171;
+  
+  --purple-primary: #a855f7;
+  --purple-hover: #9333ea;
+  --purple-subtle: rgba(168, 85, 247, 0.1);
+  --purple-border: rgba(168, 85, 247, 0.3);
+  
+  --blue-primary: #3b82f6;
+  --blue-subtle: rgba(59, 130, 246, 0.1);
+  --blue-border: rgba(59, 130, 246, 0.3);
+  
+  --yellow-primary: #f59e0b;
+  --yellow-subtle: rgba(245, 158, 11, 0.1);
+  --yellow-border: rgba(245, 158, 11, 0.3);
+  
+  /* Legacy support */
   --background: #000000;
   --foreground: #ffffff;
   --color-background: var(--background);
@@ -311,31 +398,40 @@ html {
    ======================================== */
 
 @layer components {
-  /* Card base */
+  /* Card base - Design System */
   .card {
-    @apply bg-white/5 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all duration-200;
+    @apply bg-[--color-bg-card] border border-[--color-border-subtle] rounded-lg p-6 hover:border-[--color-border-default] transition-all duration-200;
   }
 
   .card-dark {
-    @apply bg-[#0F0F0F] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all duration-200;
+    @apply bg-[--color-bg-card] border border-[--color-border-subtle] rounded-lg p-6 hover:border-[--color-border-default] transition-all duration-200;
   }
 
   .card-darker {
-    @apply bg-[#0A0A0A] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all duration-200;
+    @apply bg-[--color-bg-card] border border-[--color-border-subtle] rounded-lg p-6 hover:border-[--color-border-default] transition-all duration-200;
   }
 
-  /* Button variants */
+  /* Button variants - Design System */
   .btn-primary {
-    @apply px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition font-medium text-white;
+    @apply px-6 py-3 bg-[--color-green-primary] hover:bg-[--color-green-hover] rounded-lg transition font-medium text-white shadow-lg;
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition text-white;
+    @apply px-6 py-3 bg-[--color-border-subtle] hover:bg-[--color-border-default] border border-[--color-border-default] rounded-lg transition text-white font-medium;
   }
 
-  /* Input base */
+  /* Tab Navigation - Green Active State */
+  .tab-active {
+    @apply flex-1 px-6 py-3 bg-[--color-green-primary] text-white rounded-md font-medium shadow-lg transition-all;
+  }
+
+  .tab-inactive {
+    @apply flex-1 px-6 py-3 text-[--color-text-tertiary] hover:text-[--color-text-primary] hover:bg-[--color-border-subtle] rounded-md font-medium transition-all;
+  }
+
+  /* Input base - Design System */
   .input {
-    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:border-blue-500 transition text-white placeholder-gray-500;
+    @apply w-full px-4 py-3 bg-[--color-border-subtle] border border-[--color-border-default] rounded-lg focus:outline-none focus:border-[--color-green-primary] transition text-[--color-text-primary] placeholder:text-[--color-text-muted];
   }
 
   /* Section spacing */

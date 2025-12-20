@@ -1,12 +1,102 @@
 'use client'
 
-import { AlertTriangle, Info } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertTriangle, Info, X } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 
-export function LegalDisclaimers() {
+interface LegalDisclaimersProps {
+  type?: 'backtesting' | 'ai_insights'
+}
+
+export function LegalDisclaimers({ type = 'backtesting' }: LegalDisclaimersProps) {
+  const [isDismissed, setIsDismissed] = useState(false)
+  const [isPermanentlyDismissed, setIsPermanentlyDismissed] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const dismissed = localStorage.getItem(`disclaimer_${type}_dismissed`) === 'true'
+      setIsPermanentlyDismissed(dismissed)
+    }
+  }, [type])
+
+  const handleDismiss = () => {
+    setIsDismissed(true)
+  }
+
+  const handlePermanentDismiss = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`disclaimer_${type}_dismissed`, 'true')
+      setIsPermanentlyDismissed(true)
+      setIsDismissed(true)
+    }
+  }
+
+  if (isDismissed || isPermanentlyDismissed) {
+    return null
+  }
+
+  if (type === 'ai_insights') {
+    return (
+      <Card variant="darker" className="border-yellow-500/20 bg-yellow-500/5 relative">
+        <button
+          onClick={handleDismiss}
+          className="absolute top-3 right-3 p-1 hover:bg-yellow-500/20 rounded transition-colors z-10"
+          aria-label="Dismiss disclaimer"
+        >
+          <X className="w-5 h-5 text-yellow-400" />
+        </button>
+
+        <div className="space-y-4 pr-8">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-yellow-500 mb-2">
+                ⚠️ CRITICAL: TAI INSIGHTS ARE NOT INVESTMENT ADVICE
+              </h3>
+              <div className="text-xs text-gray-400 space-y-2">
+                <p>
+                  <strong className="text-gray-300">AI Analysis Only:</strong> Trade Autopsy Intelligence (TAI) analyzes YOUR historical trading patterns. It does NOT provide investment advice or predict future market movements.
+                </p>
+                <p>
+                  <strong className="text-gray-300">Not Investment Advice:</strong> TradeAutopsy is NOT a SEBI-registered Investment Advisor. All insights are backward-looking educational observations and do NOT predict future market movements.
+                </p>
+                <p>
+                  <strong className="text-gray-300">Your Responsibility:</strong> You are solely responsible for all trading decisions. Always consult a SEBI-registered advisor for investment decisions. Past performance does NOT indicate future results.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 mt-6 pt-4 border-t border-yellow-500/30">
+          <button
+            onClick={handlePermanentDismiss}
+            className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors text-sm"
+          >
+            I Understand - Don't Show Again
+          </button>
+          <button
+            onClick={handleDismiss}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors text-sm"
+          >
+            Dismiss for Now
+          </button>
+        </div>
+      </Card>
+    )
+  }
+
   return (
-    <Card variant="darker" className="border-yellow-500/20 bg-yellow-500/5">
-      <div className="space-y-4">
+    <Card variant="darker" className="border-yellow-500/20 bg-yellow-500/5 relative">
+      <button
+        onClick={handleDismiss}
+        className="absolute top-3 right-3 p-1 hover:bg-yellow-500/20 rounded transition-colors z-10"
+        aria-label="Dismiss disclaimer"
+      >
+        <X className="w-5 h-5 text-yellow-400" />
+      </button>
+
+      <div className="space-y-4 pr-8">
         <div className="flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
@@ -57,6 +147,21 @@ export function LegalDisclaimers() {
             </ul>
           </div>
         </div>
+      </div>
+
+      <div className="flex items-center gap-3 mt-6 pt-4 border-t border-yellow-500/30">
+        <button
+          onClick={handlePermanentDismiss}
+          className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors text-sm"
+        >
+          I Understand - Don't Show Again
+        </button>
+        <button
+          onClick={handleDismiss}
+          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors text-sm"
+        >
+          Dismiss for Now
+        </button>
       </div>
     </Card>
   )
