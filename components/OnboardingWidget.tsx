@@ -1,6 +1,7 @@
 'use client'
 
 import { useOnboarding } from '@/contexts/OnboardingContext'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   CheckCircle,
@@ -10,9 +11,10 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function OnboardingWidget() {
+  const pathname = usePathname()
   const {
     steps,
     currentStep,
@@ -25,8 +27,26 @@ export default function OnboardingWidget() {
   } = useOnboarding()
 
   const [isExpanded, setIsExpanded] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
-  if (!showOnboarding || isOnboardingComplete) {
+  // Prevent hydration mismatch by only checking pathname after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Hide on auth pages (login, verify, signup, etc.)
+  // Only check after mount to prevent hydration mismatch
+  const isAuthPage = mounted && (
+    pathname?.startsWith('/login') || 
+    pathname?.startsWith('/verify') || 
+    pathname?.startsWith('/signup') ||
+    pathname?.startsWith('/forgot-password') ||
+    pathname?.startsWith('/reset-password') ||
+    pathname?.startsWith('/auth/')
+  )
+
+  // Don't render until mounted to prevent hydration mismatch
+  if (!mounted || isAuthPage || !showOnboarding || isOnboardingComplete) {
     return null
   }
 

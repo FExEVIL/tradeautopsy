@@ -1,255 +1,319 @@
 /**
  * Optimized Query Hook
+ * Request deduplication, caching, stale-while-revalidate, retry logic
  */
 
-'use client';
+'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { getCache, setCache, CacheKeys, CacheTTL, type CacheOptions } from '@/lib/cache/redis'
 
-interface QueryState<T> {
-  data: T | null;
-  isLoading: boolean;
-  isError: boolean;
-  error: Error | null;
-  isStale: boolean;
+// ============================================
+// TYPES
+// ============================================
+
+export interface UseOptimizedQueryOptions<T> {
+  enabled?: boolean
+  staleTime?: number
+  refetchInterval?: number
+  retry?: number
+  retryDelay?: number
+  onSuccess?: (data: T) => void
+  onError?: (error: Error) => void
+  cacheOptions?: CacheOptions
 }
 
-interface QueryOptions<T> {
-  enabled?: boolean;
-  staleTime?: number;
-  cacheTime?: number;
-  refetchInterval?: number;
-  refetchOnFocus?: boolean;
-  retry?: number;
-  retryDelay?: number;
-  onSuccess?: (data: T) => void;
-  onError?: (error: Error) => void;
-  initialData?: T;
+export interface UseOptimizedQueryResult<T> {
+  data: T | null
+  isLoading: boolean
+  isError: boolean
+  error: Error | null
+  refetch: () => Promise<void>
+  invalidate: () => void
 }
 
-interface QueryResult<T> extends QueryState<T> {
-  refetch: () => Promise<void>;
-  invalidate: () => void;
+// ============================================
+// REQUEST DEDUPLICATION
+// ============================================
+
+const inFlightRequests = new Map<string, Promise<any>>()
+
+function deduplicateRequest<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const existingRequest = inFlightRequests.get(key)
+  if (existingRequest) {
+    return existingRequest as Promise<T>
+  }
+
+  const request = fetcher()
+    .then((result) => {
+      inFlightRequests.delete(key)
+      return result
+    })
+    .catch((error) => {
+      inFlightRequests.delete(key)
+      throw error
+    })
+
+  inFlightRequests.set(key, request)
+  return request
 }
 
-interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-  staleTime: number;
-}
-
-const queryCache = new Map<string, CacheEntry<unknown>>();
-const inFlightQueries = new Map<string, Promise<unknown>>();
-
-function getCachedData<T>(key: string, staleTime: number): { data: T; isStale: boolean } | null {
-  const entry = queryCache.get(key) as CacheEntry<T> | undefined;
-  
-  if (!entry) return null;
-  
-  const age = Date.now() - entry.timestamp;
-  const isStale = age > staleTime;
-  
-  return { data: entry.data, isStale };
-}
-
-function setCachedData<T>(key: string, data: T, staleTime: number): void {
-  queryCache.set(key, {
-    data,
-    timestamp: Date.now(),
-    staleTime,
-  });
-}
-
-function invalidateCache(key: string): void {
-  queryCache.delete(key);
-}
+// ============================================
+// QUERY HOOK
+// ============================================
 
 export function useOptimizedQuery<T>(
   key: string | string[],
   fetcher: () => Promise<T>,
-  options: QueryOptions<T> = {}
-): QueryResult<T> {
+  options: UseOptimizedQueryOptions<T> = {}
+): UseOptimizedQueryResult<T> {
   const {
     enabled = true,
-    staleTime = 5 * 60 * 1000,
-    cacheTime = 30 * 60 * 1000,
+    staleTime = 30000, // 30 seconds default
     refetchInterval,
-    refetchOnFocus = true,
     retry = 3,
     retryDelay = 1000,
     onSuccess,
     onError,
-    initialData,
-  } = options;
+    cacheOptions = {},
+  } = options
 
-  const queryKey = Array.isArray(key) ? key.join(':') : key;
-  const mountedRef = useRef(true);
+  const cacheKey = Array.isArray(key) ? key.join(':') : key
+  const [data, setData] = useState<T | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isError, setIsError] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const [state, setState] = useState<QueryState<T>>(() => {
-    const cached = getCachedData<T>(queryKey, staleTime);
-    
-    return {
-      data: cached?.data ?? initialData ?? null,
-      isLoading: !cached && enabled,
-      isError: false,
-      error: null,
-      isStale: cached?.isStale ?? true,
-    };
-  });
-
-  const fetchData = useCallback(async (): Promise<void> => {
-    if (!enabled) return;
-
-    const existingRequest = inFlightQueries.get(queryKey);
-    if (existingRequest) {
+  // Retry logic with exponential backoff
+  const fetchWithRetry = useCallback(
+    async (attempt: number = 1): Promise<T> => {
       try {
-        const data = await existingRequest as T;
-        if (mountedRef.current) {
-          setState({
-            data,
-            isLoading: false,
-            isError: false,
-            error: null,
-            isStale: false,
-          });
+        // Check cache first
+        const cached = await getCache<T>(cacheKey, cacheOptions)
+        const now = Date.now()
+
+        // Return cached data if still fresh
+        if (cached && now - lastFetchTime < staleTime) {
+          return cached
         }
-        return;
-      } catch (error) {
-        // Continue to normal handling
-      }
-    }
 
-    const cached = getCachedData<T>(queryKey, staleTime);
-    if (cached && !cached.isStale) {
-      if (mountedRef.current) {
-        setState({
-          data: cached.data,
-          isLoading: false,
-          isError: false,
-          error: null,
-          isStale: false,
-        });
-      }
-      return;
-    }
+        // Fetch fresh data with deduplication
+        const result = await deduplicateRequest(cacheKey, async () => {
+          const response = await fetcher()
+          // Cache the result
+          await setCache(cacheKey, response, {
+            ttl: staleTime,
+            ...cacheOptions,
+          })
+          return response
+        })
 
-    if (mountedRef.current) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: true,
-        isStale: true,
-      }));
-    }
+        setLastFetchTime(now)
+        return result
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
 
-    const fetchPromise = (async () => {
-      let lastError: Error | null = null;
-      
-      for (let attempt = 0; attempt <= retry; attempt++) {
-        try {
-          const data = await fetcher();
-          return data;
-        } catch (error) {
-          lastError = error instanceof Error ? error : new Error(String(error));
-          
-          if (attempt < retry) {
-            await new Promise((resolve) => 
-              setTimeout(resolve, retryDelay * Math.pow(2, attempt))
-            );
-          }
+        // Retry on failure
+        if (attempt < retry) {
+          const delay = retryDelay * Math.pow(2, attempt - 1)
+          await new Promise((resolve) => setTimeout(resolve, delay))
+          return fetchWithRetry(attempt + 1)
         }
-      }
-      
-      throw lastError;
-    })();
 
-    inFlightQueries.set(queryKey, fetchPromise);
+        throw error
+      }
+    },
+    [cacheKey, fetcher, staleTime, retry, retryDelay, lastFetchTime, cacheOptions]
+  )
+
+  // Main fetch function
+  const fetchData = useCallback(async () => {
+    if (!enabled) {
+      return
+    }
+
+    setIsLoading(true)
+    setIsError(false)
+    setError(null)
+
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    abortControllerRef.current = new AbortController()
 
     try {
-      const data = await fetchPromise;
-      
-      setCachedData(queryKey, data, staleTime);
-      
-      if (mountedRef.current) {
-        setState({
-          data,
-          isLoading: false,
-          isError: false,
-          error: null,
-          isStale: false,
-        });
-        onSuccess?.(data);
-      }
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      
-      if (mountedRef.current) {
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          isError: true,
-          error: err,
-        }));
-        onError?.(err);
-      }
-    } finally {
-      inFlightQueries.delete(queryKey);
+      const result = await fetchWithRetry()
+      setData(result)
+      setIsLoading(false)
+      onSuccess?.(result)
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      setError(error)
+      setIsError(true)
+      setIsLoading(false)
+      onError?.(error)
     }
-  }, [queryKey, fetcher, enabled, staleTime, retry, retryDelay, onSuccess, onError]);
+  }, [enabled, fetchWithRetry, onSuccess, onError])
 
+  // Initial fetch
   useEffect(() => {
-    mountedRef.current = true;
-    fetchData();
-    
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [fetchData]);
+    fetchData()
+  }, [fetchData])
 
+  // Refetch on window focus
   useEffect(() => {
-    if (!refetchInterval || !enabled) return;
-    
-    const interval = setInterval(fetchData, refetchInterval);
-    return () => clearInterval(interval);
-  }, [fetchData, refetchInterval, enabled]);
-
-  useEffect(() => {
-    if (!refetchOnFocus) return;
-    
     const handleFocus = () => {
-      const cached = getCachedData<T>(queryKey, staleTime);
-      if (!cached || cached.isStale) {
-        fetchData();
+      if (enabled && Date.now() - lastFetchTime > staleTime) {
+        fetchData()
       }
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [queryKey, staleTime, fetchData, refetchOnFocus]);
+    }
 
-  const invalidate = useCallback(() => {
-    invalidateCache(queryKey);
-    fetchData();
-  }, [queryKey, fetchData]);
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [enabled, lastFetchTime, staleTime, fetchData])
+
+  // Refetch interval
+  useEffect(() => {
+    if (refetchInterval && enabled) {
+      intervalRef.current = setInterval(() => {
+        fetchData()
+      }, refetchInterval)
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current)
+        }
+      }
+    }
+  }, [refetchInterval, enabled, fetchData])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
+  }, [])
+
+  // Refetch function
+  const refetch = useCallback(async () => {
+    await fetchData()
+  }, [fetchData])
+
+  // Invalidate function
+  const invalidate = useCallback(async () => {
+    const { deleteCache } = await import('@/lib/cache/redis')
+    await deleteCache(cacheKey)
+    setData(null)
+    setLastFetchTime(0)
+  }, [cacheKey])
 
   return {
-    ...state,
-    refetch: fetchData,
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
     invalidate,
-  };
+  }
 }
 
-export async function prefetchQuery<T>(
-  key: string,
-  fetcher: () => Promise<T>,
-  staleTime: number = 5 * 60 * 1000
-): Promise<void> {
-  const cached = getCachedData<T>(key, staleTime);
-  if (cached && !cached.isStale) return;
+// ============================================
+// MUTATION HOOK
+// ============================================
 
-  try {
-    const data = await fetcher();
-    setCachedData(key, data, staleTime);
-  } catch {
-    // Silently fail - prefetch is best-effort
+export interface UseOptimizedMutationOptions<TData, TVariables> {
+  onSuccess?: (data: TData) => void
+  onError?: (error: Error) => void
+  invalidateKeys?: string[]
+}
+
+export interface UseOptimizedMutationResult<TData, TVariables> {
+  mutate: (variables: TVariables) => void
+  mutateAsync: (variables: TVariables) => Promise<TData>
+  isLoading: boolean
+  isError: boolean
+  isSuccess: boolean
+  error: Error | null
+  reset: () => void
+}
+
+export function useOptimizedMutation<TData, TVariables>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
+  options: UseOptimizedMutationOptions<TData, TVariables> = {}
+): UseOptimizedMutationResult<TData, TVariables> {
+  const { onSuccess, onError, invalidateKeys = [] } = options
+
+  const [isLoading, setIsLoading] = useState(false)
+  const [isError, setIsError] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  const mutateAsync = useCallback(
+    async (variables: TVariables): Promise<TData> => {
+      setIsLoading(true)
+      setIsError(false)
+      setIsSuccess(false)
+      setError(null)
+
+      try {
+        const result = await mutationFn(variables)
+
+        // Invalidate cache keys
+        if (invalidateKeys.length > 0) {
+          const { deleteCache } = await import('@/lib/cache/redis')
+          for (const key of invalidateKeys) {
+            await deleteCache(key)
+          }
+        }
+
+        setIsLoading(false)
+        setIsSuccess(true)
+        onSuccess?.(result)
+        return result
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        setError(error)
+        setIsError(true)
+        setIsLoading(false)
+        onError?.(error)
+        throw error
+      }
+    },
+    [mutationFn, invalidateKeys, onSuccess, onError]
+  )
+
+  const mutate = useCallback(
+    (variables: TVariables) => {
+      mutateAsync(variables).catch(() => {
+        // Error already handled in mutateAsync
+      })
+    },
+    [mutateAsync]
+  )
+
+  const reset = useCallback(() => {
+    setIsLoading(false)
+    setIsError(false)
+    setIsSuccess(false)
+    setError(null)
+  }, [])
+
+  return {
+    mutate,
+    mutateAsync,
+    isLoading,
+    isError,
+    isSuccess,
+    error,
+    reset,
   }
 }

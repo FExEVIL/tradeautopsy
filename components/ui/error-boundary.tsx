@@ -1,53 +1,49 @@
 /**
- * Error Boundary Component
+ * Error Boundary Components
+ * Error handling with pure black theme and emerald accent
  */
 
-'use client';
+'use client'
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode } from 'react'
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 
-interface ErrorBoundaryProps {
-  children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
-  onReset?: () => void;
+// ============================================
+// ERROR BOUNDARY CLASS COMPONENT
+// ============================================
+
+interface Props {
+  children: ReactNode
+  fallback?: ReactNode
 }
 
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
+interface State {
+  hasError: boolean
+  error: Error | null
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false, error: null };
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props)
+    this.state = { hasError: false, error: null }
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error('React Error Boundary caught error:', {
-      error: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-    });
-
-    this.props.onError?.(error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('ErrorBoundary caught an error:', error, errorInfo)
   }
 
-  handleReset = (): void => {
-    this.setState({ hasError: false, error: null });
-    this.props.onReset?.();
-  };
+  handleReset = () => {
+    this.setState({ hasError: false, error: null })
+  }
 
-  render(): ReactNode {
+  render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
-        return this.props.fallback;
+        return this.props.fallback
       }
 
       return (
@@ -55,95 +51,110 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           error={this.state.error}
           onReset={this.handleReset}
         />
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }
 
+// ============================================
+// ERROR FALLBACK COMPONENT
+// ============================================
+
 interface ErrorFallbackProps {
-  error: Error | null;
-  onReset?: () => void;
+  error: Error | null
+  onReset?: () => void
 }
 
 export function ErrorFallback({ error, onReset }: ErrorFallbackProps) {
   return (
-    <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-gray-800 bg-[#0A0A0A] p-8 text-center">
-      <div className="mb-4 rounded-full bg-red-500/10 p-3">
-        <AlertTriangle className="h-8 w-8 text-red-400" />
-      </div>
-      
-      <h2 className="mb-2 text-xl font-semibold text-white">
-        Something went wrong
-      </h2>
-      
-      <p className="mb-6 max-w-md text-gray-400">
-        We're sorry, but something unexpected happened. Please try refreshing 
-        the page or contact support if the problem persists.
-      </p>
-
-      {process.env.NODE_ENV === 'development' && error && (
-        <pre className="mb-6 max-w-full overflow-auto rounded-lg bg-gray-900 p-4 text-left text-sm text-red-300">
-          {error.message}
-        </pre>
-      )}
-
-      <div className="flex gap-4">
-        <button
-          onClick={onReset}
-          className="inline-flex items-center gap-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Try Again
-        </button>
-        
-        <button
-          onClick={() => window.location.reload()}
-          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
-        >
-          Refresh Page
-        </button>
+    <div className="flex items-center justify-center min-h-[400px] p-6">
+      <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg p-8 max-w-md w-full text-center">
+        <AlertTriangle className="w-12 h-12 text-[#EF4444] mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-white mb-2">Something went wrong</h2>
+        <p className="text-[#A1A1A1] mb-6">
+          {error?.message || 'An unexpected error occurred'}
+        </p>
+        <div className="flex gap-3 justify-center">
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </button>
+          )}
+          <button
+            onClick={() => (window.location.href = '/dashboard')}
+            className="px-4 py-2 bg-[#141414] hover:bg-[#1A1A1A] text-white rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Home className="w-4 h-4" />
+            Go Home
+          </button>
+        </div>
       </div>
     </div>
-  );
+  )
 }
 
-export function PageErrorFallback({ 
-  error, 
-  reset 
-}: { 
-  error: Error & { digest?: string }; 
-  reset: () => void;
-}) {
+// ============================================
+// PAGE ERROR FALLBACK
+// ============================================
+
+export function PageErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-black p-8">
-      <div className="mb-6 rounded-full bg-red-500/10 p-4">
-        <AlertTriangle className="h-12 w-12 text-red-400" />
-      </div>
-      
-      <h1 className="mb-2 text-2xl font-bold text-white">
-        Page Error
-      </h1>
-      
-      <p className="mb-8 max-w-md text-center text-gray-400">
-        This page encountered an error. Our team has been notified 
-        and is working on a fix.
-      </p>
-
-      {error.digest && (
-        <p className="mb-4 text-sm text-gray-500">
-          Error ID: {error.digest}
+    <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
+      <div className="bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg p-8 max-w-lg w-full text-center">
+        <AlertTriangle className="w-16 h-16 text-[#EF4444] mx-auto mb-6" />
+        <h1 className="text-2xl font-bold text-white mb-3">Page Error</h1>
+        <p className="text-[#A1A1A1] mb-8">
+          {error.message || 'An error occurred while loading this page'}
         </p>
-      )}
-
-      <button
-        onClick={reset}
-        className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
-      >
-        <RefreshCw className="h-4 w-4" />
-        Try Again
-      </button>
+        <div className="flex gap-3 justify-center">
+          <button
+            onClick={reset}
+            className="px-6 py-3 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg flex items-center gap-2 transition-colors font-medium"
+          >
+            <RefreshCw className="w-5 h-5" />
+            Try Again
+          </button>
+          <button
+            onClick={() => (window.location.href = '/dashboard')}
+            className="px-6 py-3 bg-[#141414] hover:bg-[#1A1A1A] text-white rounded-lg flex items-center gap-2 transition-colors font-medium"
+          >
+            <Home className="w-5 h-5" />
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
     </div>
-  );
+  )
+}
+
+// ============================================
+// ERROR HANDLER HOOK
+// ============================================
+
+export function useErrorHandler() {
+  const [error, setError] = React.useState<Error | null>(null)
+
+  const handleError = React.useCallback((error: Error) => {
+    setError(error)
+    console.error('Error caught by useErrorHandler:', error)
+  }, [])
+
+  const resetError = React.useCallback(() => {
+    setError(null)
+  }, [])
+
+  React.useEffect(() => {
+    if (error) {
+      // Log error to error tracking service (e.g., Sentry)
+      // logErrorToService(error)
+    }
+  }, [error])
+
+  return { error, handleError, resetError }
 }

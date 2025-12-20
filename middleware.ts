@@ -49,7 +49,17 @@ export async function middleware(request: NextRequest) {
   const workosProfileId = request.cookies.get('workos_profile_id')?.value
 
   // Public routes that don't need authentication
-  const publicRoutes = ['/login', '/signup', '/auth/callback/workos']
+  const publicRoutes = [
+    '/login',
+    '/signup',
+    '/verify',
+    '/forgot-password',
+    '/reset-password',
+    '/auth/callback',
+    '/auth/error',
+    '/api/auth',
+    '/api/health',
+  ]
   const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
 
   // Protect dashboard routes
@@ -74,9 +84,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/login',
-    '/signup',
-    '/auth/callback/:path*',
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

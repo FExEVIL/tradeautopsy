@@ -1,286 +1,321 @@
 /**
- * API Middleware for TradeAutopsy
+ * API Middleware System
+ * Rate limiting, request handling, validation, and response helpers
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { ValidationError } from '@/lib/validation/schemas';
-import { createClient } from '@/utils/supabase/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+import { createClient } from '@/utils/supabase/server'
+import { z } from 'zod'
+import type { ApiResponse, ApiError } from '@/lib/types'
 
-interface RateLimitConfig {
-  requests: number;
-  window: `${number} ${'s' | 'm' | 'h' | 'd'}`;
-}
+// ============================================
+// RATE LIMITING CONFIGURATIONS
+// ============================================
 
-interface MiddlewareConfig {
-  rateLimit?: RateLimitConfig;
-  requireAuth?: boolean;
-  validateBody?: any;
-  validateQuery?: any;
-}
+let redisClient: Redis | null = null
 
-interface AuthenticatedRequest extends NextRequest {
-  user?: {
-    id: string;
-    email: string;
-  };
-  profileId?: string;
-}
-
-type ApiHandler<T = unknown> = (
-  req: AuthenticatedRequest,
-  context?: { params: Record<string, string> }
-) => Promise<T>;
-
-let rateLimiter: any = null;
-
-function getRateLimiter(config: RateLimitConfig): any | null {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return null;
+try {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redisClient = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
   }
+} catch (error) {
+  console.warn('Redis not configured for rate limiting')
+}
 
-  try {
-    const { Ratelimit } = require('@upstash/ratelimit');
-    const { Redis } = require('@upstash/redis');
-    
-    if (!rateLimiter) {
-      rateLimiter = new Ratelimit({
-        redis: Redis.fromEnv(),
-        limiter: Ratelimit.slidingWindow(config.requests, config.window),
-        analytics: true,
-        prefix: 'tradeautopsy:ratelimit:',
-      });
+// Rate limit configurations
+const rateLimitConfigs = {
+  standard: {
+    limit: 100,
+    window: '1 m',
+  },
+  auth: {
+    limit: 10,
+    window: '1 m',
+  },
+  ai: {
+    limit: 20,
+    window: '1 m',
+  },
+  import: {
+    limit: 5,
+    window: '1 m',
+  },
+} as const
+
+function createRatelimit(config: { limit: number; window: string }) {
+  if (!redisClient) {
+    // Fallback: No rate limiting if Redis not available
+    return {
+      limit: async () => ({ success: true, limit: config.limit, remaining: config.limit, reset: Date.now() }),
     }
-    return rateLimiter;
-  } catch {
-    return null;
+  }
+
+  return new Ratelimit({
+    redis: redisClient,
+    limiter: Ratelimit.slidingWindow(config.limit, config.window),
+    analytics: true,
+  })
+}
+
+const rateLimiters = {
+  standard: createRatelimit(rateLimitConfigs.standard),
+  auth: createRatelimit(rateLimitConfigs.auth),
+  ai: createRatelimit(rateLimitConfigs.ai),
+  import: createRatelimit(rateLimitConfigs.import),
+}
+
+// ============================================
+// MIDDLEWARE OPTIONS
+// ============================================
+
+export interface MiddlewareOptions {
+  rateLimit?: keyof typeof rateLimitConfigs
+  requireAuth?: boolean
+  validateBody?: z.ZodSchema
+  validateQuery?: z.ZodSchema
+  requireProfile?: boolean
+}
+
+// ============================================
+// MIDDLEWARE WRAPPER
+// ============================================
+
+export function withMiddleware<T = any>(
+  handler: (req: NextRequest, context: { userId: string | null; profileId: string | null }) => Promise<NextResponse<ApiResponse<T>>>,
+  options: MiddlewareOptions = {}
+) {
+  return async (req: NextRequest): Promise<NextResponse> => {
+    try {
+      // 1. Rate limiting
+      if (options.rateLimit) {
+        const identifier = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+        const rateLimitResult = await rateLimiters[options.rateLimit].limit(identifier)
+
+        if (!rateLimitResult.success) {
+          return rateLimitResponse(rateLimitResult.reset)
+        }
+      }
+
+      // 2. Authentication
+      let userId: string | null = null
+      let profileId: string | null = null
+
+      if (options.requireAuth !== false) {
+        const supabase = await createClient()
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser()
+
+        if (authError || !user) {
+          return unauthorizedResponse('Authentication required')
+        }
+
+        userId = user.id
+
+        // Extract profile ID from header or cookie
+        const profileHeader = req.headers.get('x-profile-id')
+        if (profileHeader) {
+          profileId = profileHeader === 'null' ? null : profileHeader
+        } else {
+          // Try to get from cookie or user preferences
+          const cookieProfileId = req.cookies.get('profile_id')?.value
+          profileId = cookieProfileId === 'null' || !cookieProfileId ? null : cookieProfileId
+        }
+      }
+
+      // 3. Body validation
+      if (options.validateBody) {
+        try {
+          const body = await req.json()
+          options.validateBody.parse(body)
+          // Re-create request with validated body (attach to request)
+          ;(req as any).validatedBody = body
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            return validationErrorResponse(error)
+          }
+          return errorResponse('Invalid request body', 400)
+        }
+      }
+
+      // 4. Query validation
+      if (options.validateQuery) {
+        try {
+          const searchParams = Object.fromEntries(req.nextUrl.searchParams.entries())
+          options.validateQuery.parse(searchParams)
+          ;(req as any).validatedQuery = searchParams
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            return validationErrorResponse(error)
+          }
+          return errorResponse('Invalid query parameters', 400)
+        }
+      }
+
+      // 5. Profile requirement
+      if (options.requireProfile && !profileId) {
+        return errorResponse('Profile ID is required', 400)
+      }
+
+      // 6. Call handler
+      // For public routes (requireAuth: false), userId can be null
+      // The handler should handle this case appropriately
+      return await handler(req, { userId: userId || null, profileId })
+    } catch (error) {
+      console.error('Middleware error:', error)
+      return errorResponse('Internal server error', 500)
+    }
   }
 }
 
-export const rateLimitConfigs = {
-  standard: { requests: 100, window: '1 m' } as RateLimitConfig,
-  auth: { requests: 10, window: '1 m' } as RateLimitConfig,
-  ai: { requests: 20, window: '1 m' } as RateLimitConfig,
-  import: { requests: 5, window: '1 m' } as RateLimitConfig,
-  export: { requests: 10, window: '1 m' } as RateLimitConfig,
-};
+// ============================================
+// RESPONSE HELPERS
+// ============================================
 
-export function successResponse<T>(
-  data: T,
-  options: { status?: number; headers?: Record<string, string> } = {}
-): NextResponse {
-  const { status = 200, headers = {} } = options;
-  
+export function successResponse<T>(data: T, status: number = 200, meta?: ApiResponse<T>['meta']): NextResponse<ApiResponse<T>> {
   return NextResponse.json(
     {
       success: true,
       data,
-      timestamp: new Date().toISOString(),
-    },
-    {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-    }
-  );
+      meta,
+    } as ApiResponse<T>,
+    { status }
+  )
 }
 
-export function errorResponse(
-  message: string,
-  options: {
-    status?: number;
-    code?: string;
-    details?: unknown;
-    headers?: Record<string, string>;
-  } = {}
-): NextResponse {
-  const { status = 500, code = 'INTERNAL_ERROR', details, headers = {} } = options;
+export function errorResponse(message: string, status: number = 500, code?: string, details?: Record<string, any>): NextResponse<ApiResponse<never>> {
+  // Ensure message is a valid string
+  const errorMessage = typeof message === 'string' && message.trim() && message !== '[object Object]'
+    ? message
+    : 'An unexpected error occurred'
+
+  const error: ApiError = {
+    code: code || 'INTERNAL_ERROR',
+    message: errorMessage,
+    ...(details && { details }),
+  }
 
   return NextResponse.json(
     {
       success: false,
-      error: {
-        message,
-        code,
-        details,
-      },
-      timestamp: new Date().toISOString(),
-    },
-    {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-    }
-  );
+      error,
+    } as ApiResponse<never>,
+    { status }
+  )
 }
 
-export function validationErrorResponse(error: ValidationError): NextResponse {
-  return errorResponse('Validation failed', {
-    status: 400,
+export function validationErrorResponse(zodError: z.ZodError): NextResponse<ApiResponse<never>> {
+  const firstError = zodError.errors[0]
+  const error: ApiError = {
     code: 'VALIDATION_ERROR',
-    details: error.errors,
-  });
+    message: firstError.message,
+    field: firstError.path.join('.'),
+    details: zodError.errors.map((e) => ({
+      field: e.path.join('.'),
+      message: e.message,
+    })),
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+    } as ApiResponse<never>,
+    { status: 400 }
+  )
 }
 
-export function rateLimitResponse(retryAfter: number): NextResponse {
-  return errorResponse('Rate limit exceeded', {
-    status: 429,
+export function rateLimitResponse(reset: number): NextResponse<ApiResponse<never>> {
+  const retryAfter = Math.ceil((reset - Date.now()) / 1000)
+  const error: ApiError = {
     code: 'RATE_LIMIT_EXCEEDED',
-    headers: {
-      'Retry-After': String(retryAfter),
-      'X-RateLimit-Remaining': '0',
-    },
-  });
-}
+    message: 'Too many requests. Please try again later.',
+  }
 
-export function unauthorizedResponse(message = 'Unauthorized'): NextResponse {
-  return errorResponse(message, {
-    status: 401,
-    code: 'UNAUTHORIZED',
-  });
-}
-
-export function withMiddleware<T>(
-  handler: ApiHandler<T>,
-  config: MiddlewareConfig = {}
-): (req: NextRequest, context?: { params: Record<string, string> }) => Promise<NextResponse> {
-  return async (req: NextRequest, context?: { params: Record<string, string> }) => {
-    try {
-      if (config.rateLimit) {
-        const limiter = getRateLimiter(config.rateLimit);
-        if (limiter) {
-          const identifier = req.headers.get('authorization') || 
-            req.headers.get('x-forwarded-for')?.split(',')[0] || 
-            'unknown';
-          const { success, reset } = await limiter.limit(identifier);
-          if (!success) {
-            const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-            return rateLimitResponse(retryAfter);
-          }
-        }
-      }
-
-      let user: { id: string; email: string } | null = null;
-      
-      if (config.requireAuth) {
-        const supabase = await createClient();
-        const { data: { user: authUser }, error } = await supabase.auth.getUser();
-        
-        if (error || !authUser) {
-          return unauthorizedResponse();
-        }
-        
-        user = { id: authUser.id, email: authUser.email || '' };
-      }
-
-      if (config.validateQuery) {
-        const url = new URL(req.url);
-        const query = Object.fromEntries(url.searchParams.entries());
-        const result = config.validateQuery.safeParse(query);
-        if (!result.success) {
-          throw new ValidationError(
-            'Invalid query parameters',
-            result.error.errors.map((e: any) => ({
-              field: e.path.join('.'),
-              message: e.message,
-            }))
-          );
-        }
-      }
-
-      if (config.validateBody && ['POST', 'PUT', 'PATCH'].includes(req.method)) {
-        let body: unknown;
-        try {
-          body = await req.json();
-        } catch {
-          return errorResponse('Invalid JSON body', {
-            status: 400,
-            code: 'INVALID_JSON',
-          });
-        }
-        
-        const result = config.validateBody.safeParse(body);
-        if (!result.success) {
-          throw new ValidationError(
-            'Invalid request body',
-            result.error.errors.map((e: any) => ({
-              field: e.path.join('.'),
-              message: e.message,
-            }))
-          );
-        }
-      }
-
-      const authenticatedReq = req as AuthenticatedRequest;
-      if (user) {
-        authenticatedReq.user = user;
-      }
-
-      const profileId = req.headers.get('x-profile-id') || 
-        req.cookies.get('selected_profile_id')?.value;
-      
-      if (profileId) {
-        authenticatedReq.profileId = profileId;
-      }
-
-      const result = await handler(authenticatedReq, context);
-
-      if (result instanceof NextResponse) {
-        return result;
-      }
-
-      return successResponse(result);
-
-    } catch (error) {
-      console.error('[API Error]', error);
-
-      if (error instanceof ValidationError) {
-        return validationErrorResponse(error);
-      }
-
-      if (error instanceof Error) {
-        const message = process.env.NODE_ENV === 'development'
-          ? error.message
-          : 'An unexpected error occurred';
-        
-        return errorResponse(message, {
-          status: 500,
-          code: 'INTERNAL_ERROR',
-        });
-      }
-
-      return errorResponse('An unexpected error occurred', {
-        status: 500,
-        code: 'INTERNAL_ERROR',
-      });
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+    } as ApiResponse<never>,
+    {
+      status: 429,
+      headers: {
+        'Retry-After': retryAfter.toString(),
+        'X-RateLimit-Reset': reset.toString(),
+      },
     }
-  };
+  )
 }
 
-export function corsHeaders(origin?: string): Record<string, string> {
-  const allowedOrigins = [
-    process.env.NEXT_PUBLIC_APP_URL,
-    'https://tradeautopsy.in',
-    'https://www.tradeautopsy.in',
-  ].filter(Boolean);
+export function unauthorizedResponse(message: string = 'Unauthorized'): NextResponse<ApiResponse<never>> {
+  const error: ApiError = {
+    code: 'UNAUTHORIZED',
+    message,
+  }
 
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+    } as ApiResponse<never>,
+    { status: 401 }
+  )
+}
+
+export function forbiddenResponse(message: string = 'Forbidden'): NextResponse<ApiResponse<never>> {
+  const error: ApiError = {
+    code: 'FORBIDDEN',
+    message,
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+    } as ApiResponse<never>,
+    { status: 403 }
+  )
+}
+
+export function notFoundResponse(message: string = 'Resource not found'): NextResponse<ApiResponse<never>> {
+  const error: ApiError = {
+    code: 'NOT_FOUND',
+    message,
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+    } as ApiResponse<never>,
+    { status: 404 }
+  )
+}
+
+// ============================================
+// CORS HANDLING
+// ============================================
+
+export function corsHeaders(): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': 
-      origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0] || '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Profile-Id',
+    'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Profile-ID',
     'Access-Control-Max-Age': '86400',
-  };
+  }
 }
 
-export function optionsHandler(req: NextRequest): NextResponse {
-  return new NextResponse(null, {
-    status: 204,
-    headers: corsHeaders(req.headers.get('origin') || undefined),
-  });
+export function optionsHandler(): NextResponse {
+  return NextResponse.json({}, { headers: corsHeaders() })
 }
 
-export type { AuthenticatedRequest, MiddlewareConfig, ApiHandler };
+// ============================================
+// EXPORTS
+// ============================================
+// All functions are already exported above

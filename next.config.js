@@ -37,6 +37,22 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // ✅ Webpack configuration to fix worker thread errors
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Externalize worker_threads to prevent bundling issues
+      config.externals = [...(config.externals || []), 'worker_threads']
+      
+      // Fix worker_threads issues
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'worker_threads': false,
+      }
+    }
+
+    return config
+  },
+
   // ✅ Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -61,6 +77,18 @@ const nextConfig = {
 
   // ✅ Webpack optimizations
   webpack: (config, { dev, isServer }) => {
+    // Fix worker thread errors
+    if (isServer) {
+      // Externalize worker_threads to prevent bundling issues
+      config.externals = [...(config.externals || []), 'worker_threads']
+      
+      // Fix worker_threads issues
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'worker_threads': false,
+      }
+    }
+
     if (!dev && !isServer) {
       config.optimization.usedExports = true
       config.optimization.sideEffects = false
@@ -121,6 +149,15 @@ const nextConfig = {
     return config
   },
 
+  // ✅ Compiler optimizations for production
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'], // Keep errors and warnings
+    } : false,
+  },
+
+  // ✅ SWC minification is enabled by default in Next.js 15
+
   async headers() {
     return [
       {
@@ -138,10 +175,42 @@ const nextConfig = {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://api.workos.com https://va.vercel-scripts.com;",
+          },
         ],
       },
       {
         source: '/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // ✅ Cache images aggressively
+        source: '/:all*(svg|jpg|jpeg|png|gif|webp|avif|ico)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // ✅ Cache Next.js static assets
+        source: '/_next/static/:path*',
         headers: [
           {
             key: 'Cache-Control',

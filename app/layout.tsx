@@ -156,6 +156,35 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* ✅ Critical CSS - Inline for immediate rendering (FCP/LCP optimization) */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            /* Critical CSS - loads immediately */
+            body { 
+              margin: 0; 
+              background: #000; 
+              color: #fff;
+              font-family: Inter, system-ui, -apple-system, sans-serif;
+              -webkit-font-smoothing: antialiased;
+              -moz-osx-font-smoothing: grayscale;
+            }
+            /* Skeleton loader animation */
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.5; }
+            }
+            .skeleton {
+              background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+              background-size: 200% 100%;
+              animation: pulse 1.5s ease-in-out infinite;
+            }
+            /* Prevent layout shift during font load */
+            html {
+              font-family: Inter, system-ui, -apple-system, sans-serif;
+            }
+          `
+        }} />
+        
         {/* ✅ Preconnect to external domains (TTFB optimization) */}
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link

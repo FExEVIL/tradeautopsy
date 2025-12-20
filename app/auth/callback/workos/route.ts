@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { workos, WORKOS_CLIENT_ID } from '@/lib/workos'
+import { authenticateWithCode } from '@/lib/auth/workos-optimized'
 import { createClient } from '@/utils/supabase/server'
-import { cookies } from 'next/headers'
+import { handleError } from '@/lib/utils/error-handler'
+import { logEvent } from '@/lib/utils/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,17 +25,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    if (!workos) {
-      throw new Error('WorkOS not configured')
-    }
-
-    console.log('[WorkOS] Exchanging code for user profile...')
-
-    // Exchange code for user
-    const { user } = await workos.userManagement.authenticateWithCode({
-      code,
-      clientId: WORKOS_CLIENT_ID,
-    })
+    // Exchange code for user using optimized function
+    const user = await authenticateWithCode(code)
 
     console.log('[WorkOS] User authenticated:', {
       id: user.id,
