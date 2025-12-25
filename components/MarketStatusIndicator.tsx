@@ -1,34 +1,54 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useMarketStatus } from '@/lib/hooks/useMarketStatus'
 
 export function MarketStatusIndicator() {
   const { isOpen, statusText, nextEvent, nextEventTime } = useMarketStatus()
+  const [mounted, setMounted] = useState(false)
+  const [timeRemaining, setTimeRemaining] = useState('')
 
-  // Calculate time remaining
-  const getTimeRemaining = () => {
-    if (!nextEventTime) return ''
+  // Only render time-dependent content after hydration
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-    const now = new Date()
-    const diff = nextEventTime.getTime() - now.getTime()
-
-    if (diff <= 0) return 'Soon'
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-
-    if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m ${seconds}s`
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m ${seconds}s`
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`
-    } else {
-      return `${seconds}s`
+  // Calculate time remaining (only on client after mount)
+  useEffect(() => {
+    if (!mounted || !nextEventTime) {
+      setTimeRemaining('')
+      return
     }
-  }
+
+    const updateTimeRemaining = () => {
+      const now = new Date()
+      const diff = nextEventTime.getTime() - now.getTime()
+
+      if (diff <= 0) {
+        setTimeRemaining('Soon')
+        return
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / 1000 / 60)
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m ${seconds}s`)
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
+      } else if (minutes > 0) {
+        setTimeRemaining(`${minutes}m ${seconds}s`)
+      } else {
+        setTimeRemaining(`${seconds}s`)
+      }
+    }
+
+    updateTimeRemaining()
+    const interval = setInterval(updateTimeRemaining, 1000)
+    return () => clearInterval(interval)
+  }, [mounted, nextEventTime])
 
   return (
     <div
@@ -53,9 +73,9 @@ export function MarketStatusIndicator() {
         }`}>
           {statusText}
         </span>
-        {nextEventTime && (
-          <span className="text-[10px] text-text-muted">
-            {nextEvent} {getTimeRemaining()}
+        {mounted && nextEventTime && timeRemaining && (
+          <span className="text-[10px] text-text-muted" suppressHydrationWarning>
+            {nextEvent} {timeRemaining}
           </span>
         )}
       </div>

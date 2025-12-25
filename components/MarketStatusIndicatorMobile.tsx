@@ -1,25 +1,49 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useMarketStatus } from '@/lib/hooks/useMarketStatus'
 
 export function MarketStatusIndicatorMobile() {
   const { isOpen, statusText, nextEvent, nextEventTime } = useMarketStatus()
+  const [mounted, setMounted] = useState(false)
+  const [timeRemaining, setTimeRemaining] = useState('')
 
-  const getTimeRemaining = () => {
-    if (!nextEventTime) return ''
-    const now = new Date()
-    const diff = nextEventTime.getTime() - now.getTime()
-    if (diff <= 0) return 'Soon'
-    
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-    
-    if (days > 0) {
-      return `${days}d ${hours}h`
+  // Only render time-dependent content after hydration
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Calculate time remaining (only on client after mount)
+  useEffect(() => {
+    if (!mounted || !nextEventTime) {
+      setTimeRemaining('')
+      return
     }
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
-  }
+
+    const updateTimeRemaining = () => {
+      const now = new Date()
+      const diff = nextEventTime.getTime() - now.getTime()
+      
+      if (diff <= 0) {
+        setTimeRemaining('Soon')
+        return
+      }
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / 1000 / 60)
+      
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h`)
+      } else {
+        setTimeRemaining(hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`)
+      }
+    }
+
+    updateTimeRemaining()
+    const interval = setInterval(updateTimeRemaining, 1000)
+    return () => clearInterval(interval)
+  }, [mounted, nextEventTime])
 
   return (
     <div
@@ -42,9 +66,9 @@ export function MarketStatusIndicatorMobile() {
         <span className="text-xs font-medium text-white">
           {statusText}
         </span>
-        {nextEventTime && (
-          <span className="text-[10px] text-gray-500">
-            {nextEvent} {getTimeRemaining()}
+        {mounted && nextEventTime && timeRemaining && (
+          <span className="text-[10px] text-gray-500" suppressHydrationWarning>
+            {nextEvent} {timeRemaining}
           </span>
         )}
       </div>

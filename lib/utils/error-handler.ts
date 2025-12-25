@@ -27,7 +27,10 @@ export class AppError extends Error {
     this.isOperational = isOperational
     this.details = details
 
-    Error.captureStackTrace(this, this.constructor)
+    // captureStackTrace is not available in all environments
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor)
+    }
   }
 
   toJSON() {
@@ -144,8 +147,11 @@ export function normalizeError(error: unknown): AppError {
       return new DatabaseError('Constraint violation', error)
     }
 
-    // Generic error
-    return new AppError(message, 'INTERNAL_ERROR', 500, false)
+    // Generic error - ensure message is a string
+    const errorMessage = typeof message === 'string' && message.trim() 
+      ? message 
+      : 'An unexpected error occurred'
+    return new AppError(errorMessage, 'INTERNAL_ERROR', 500, false)
   }
 
   // Error object with message property

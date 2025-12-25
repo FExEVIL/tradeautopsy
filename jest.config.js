@@ -21,6 +21,13 @@ const customJestConfig = {
     '**/__tests__/**/*.[jt]s?(x)',
     '**/?(*.)+(spec|test).[jt]s?(x)',
   ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/.next/',
+    '/e2e/',
+    '/coverage/',
+    '/__tests__/utils/', // Exclude test helpers from being run as tests
+  ],
   collectCoverageFrom: [
     'lib/**/*.{js,jsx,ts,tsx}',
     'components/**/*.{js,jsx,ts,tsx}',
@@ -38,6 +45,9 @@ const customJestConfig = {
       statements: 70,
     },
   },
+  // Performance optimizations
+  maxWorkers: '50%', // Use 50% of CPU cores for better performance
+  testTimeout: 10000, // 10 second timeout per test
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

@@ -3,6 +3,7 @@ import { authenticateWithCode } from '@/lib/auth/workos-optimized'
 import { createClient } from '@/utils/supabase/server'
 import { handleError } from '@/lib/utils/error-handler'
 import { logEvent } from '@/lib/utils/logger'
+import { setSession } from '@/lib/auth/session'
 
 export async function GET(request: NextRequest) {
   try {
@@ -191,19 +192,31 @@ export async function GET(request: NextRequest) {
       throw new Error('Failed to get or create user')
     }
 
-    // Cookies will be set on the redirect response below
-
-    // For WorkOS users, we'll use cookie-based session
-    // Supabase session won't work without password, which is expected
+    // Create session using setSession() function (proper session management)
+    await setSession({
+      userId,
+      email: user.email,
+      workosUserId: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    })
 
     console.log('[WorkOS] Session created, redirecting to dashboard')
 
+    // Get redirect URL from query params, default to dashboard
+    const redirectUrl = searchParams.get('redirect') || '/dashboard'
+    
+    // Ensure URL is valid and starts with /
+    const safeRedirectUrl = redirectUrl.startsWith('/') 
+      ? redirectUrl 
+      : '/dashboard'
+
     // Create response with redirect
     const response = NextResponse.redirect(
-      new URL('/dashboard', request.url)
+      new URL(safeRedirectUrl, request.url)
     )
 
-    // Set cookies on response
+    // Also set legacy cookies for backward compatibility
     response.cookies.set('workos_user_id', user.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

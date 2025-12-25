@@ -23,8 +23,12 @@ export const POST = withMiddleware(
       const body = (req as any).validatedBody || await req.json()
       const { email } = sendOTPSchema.parse(body)
 
+      console.log('[Send OTP] Sending code to:', email)
+
       // Send OTP via WorkOS Magic Auth
       await sendMagicAuthCode(email)
+
+      console.log('[Send OTP] Code sent successfully')
 
       const duration = performance.now() - timer
       logApiCall('POST', '/api/auth/send-otp', 200, duration)
@@ -37,6 +41,7 @@ export const POST = withMiddleware(
         200
       )
     } catch (error) {
+      console.error('[Send OTP] Error:', error)
       const duration = performance.now() - timer
       const appError = handleError(error, { endpoint: '/api/auth/send-otp', ipAddress })
       
@@ -45,8 +50,13 @@ export const POST = withMiddleware(
         ? appError.message 
         : 'Failed to send verification code. Please try again.'
       
-      logApiCall('POST', '/api/auth/send-otp', appError.statusCode, duration, undefined, {
+      console.error('[Send OTP] AppError:', {
+        message: errorMessage,
         code: appError.code,
+        statusCode: appError.statusCode,
+      })
+      
+      logApiCall('POST', '/api/auth/send-otp', appError.statusCode, duration, undefined, {
         message: errorMessage,
         statusCode: appError.statusCode,
       })

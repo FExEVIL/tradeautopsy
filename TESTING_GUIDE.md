@@ -1,355 +1,418 @@
-# TradeAutopsy Test Data Guide
+# Testing Infrastructure Guide
 
-## 📋 Overview
+## Overview
 
-This guide explains how to use the generated test CSV file (`test-trades-1year.csv`) to comprehensively test all TradeAutopsy features.
-
-## 🎯 Generated Test Data
-
-The CSV file contains **400-500 realistic trades** spanning **1 year** with:
-
-- ✅ All 8 behavioral patterns injected
-- ✅ All rule violations present
-- ✅ Strategy performance variance
-- ✅ Time-based performance patterns
-- ✅ Day-of-week patterns
-- ✅ Realistic Indian market data
-
-## 📊 What's Included
-
-### Patterns Injected
-
-1. **Revenge Trading** (20 instances)
-   - Trades within 30 minutes of losses
-   - 2x+ position sizing
-   - 75% loss rate
-
-2. **FOMO Trading** (15 instances)
-   - Large positions during high volatility
-   - Entered at peak prices
-   - 65% loss rate
-
-3. **Overtrading** (25 days)
-   - 8-12 trades per day
-   - Lower win rate (45%)
-
-4. **Win Streak Overconfidence** (10 instances)
-   - Increased position size after 4+ wins
-   - Followed by losses
-
-5. **Loss Aversion** (30 instances)
-   - Small winners cut early
-   - Big losers held too long
-
-6. **Weekend Warrior** (15 instances)
-   - Heavy Friday afternoon trading
-   - Poor performance (40% win rate)
-
-7. **Revenge Sizing** (18 instances)
-   - Increased size after losses
-
-8. **News Trading** (12 instances)
-   - Trading during high-impact events
-   - 45% win rate
-
-### Rule Violations
-
-- **Time Violations**: 30+ trades after 2:30 PM
-- **Trade Count Violations**: 25+ days with >5 trades
-- **Loss Limit Violations**: 15+ days exceeding ₹5,000 loss
-
-### Strategy Distribution
-
-- **Scalping** (40%): 58% win rate, ₹450 avg winner
-- **Intraday** (30%): 52% win rate, ₹850 avg winner
-- **Swing** (20%): 48% win rate, ₹3,200 avg winner
-- **Options** (10%): 45% win rate, ₹5,500 avg winner
-
-### Performance Metrics
-
-- **Net P&L**: ₹45,000 - ₹65,000 (slightly profitable)
-- **Win Rate**: 50-55%
-- **Total Trades**: 400-500
-- **Date Range**: Last 12 months
-
-## 🚀 How to Use
-
-### Step 1: Generate the CSV
-
-```bash
-# Install dependencies if needed
-npm install
-
-# Run the generator
-npx tsx scripts/generate-test-csv.ts
-```
-
-This creates:
-- `test-trades-1year.csv` - The main CSV file
-- `test-data-summary.json` - Statistics summary
-
-### Step 2: Import into TradeAutopsy
-
-1. Log into TradeAutopsy dashboard
-2. Navigate to **Import** page (`/dashboard/import`)
-3. Upload `test-trades-1year.csv`
-4. Map columns:
-   - `Tradingsymbol` → Symbol
-   - `Transaction Type` → Transaction Type
-   - `Quantity` → Quantity
-   - `Price` → Average Price
-   - `Trade Date` → Trade Date
-   - `Product` → Product
-   - `Order ID` → Trade ID (optional)
-5. Click **Import**
-
-### Step 3: Verify Import
-
-After import, check:
-- ✅ Total trades count matches summary
-- ✅ Net P&L matches expected range
-- ✅ All strategies are present
-- ✅ Date range is correct
-
-## 🧪 Testing Features
-
-### 1. Pattern Detection
-
-**Location**: `/dashboard/patterns`
-
-**What to Test**:
-- ✅ Revenge trading pattern appears
-- ✅ FOMO pattern detected
-- ✅ Overtrading days highlighted
-- ✅ Win streak overconfidence flagged
-- ✅ Loss aversion patterns visible
-
-**Expected Results**:
-- Pattern library shows all 8 patterns
-- Pattern frequency matches summary
-- Pattern costs are calculated correctly
-
-### 2. Trading Rules
-
-**Location**: `/dashboard/rules`
-
-**What to Test**:
-- ✅ Time restriction violations logged
-- ✅ Trade count violations detected
-- ✅ Loss limit violations recorded
-- ✅ Rule adherence stats updated
-
-**Expected Results**:
-- Violations table shows all violations
-- Adherence score calculated
-- Streak tracking works
-
-### 3. AI Coach Insights
-
-**Location**: `/dashboard/coach`
-
-**What to Test**:
-- ✅ Insights generated for patterns
-- ✅ Action plans created
-- ✅ Weekly goals set
-- ✅ Chat responses work
-
-**Expected Results**:
-- Multiple insights appear
-- Action plans are relevant
-- Chat provides helpful advice
-
-### 4. Risk Metrics
-
-**Location**: `/dashboard/risk`
-
-**What to Test**:
-- ✅ Drawdown calculated
-- ✅ Sharpe ratio computed
-- ✅ Win rate accurate
-- ✅ Risk-adjusted returns
-
-**Expected Results**:
-- All metrics display correctly
-- Charts render properly
-- Historical data shows trends
-
-### 5. Strategy Analysis
-
-**Location**: `/dashboard/strategy-analysis`
-
-**What to Test**:
-- ✅ All 4 strategies analyzed
-- ✅ Performance comparison works
-- ✅ Strategy recommendations appear
-
-**Expected Results**:
-- Each strategy shows correct stats
-- Best/worst strategies identified
-- Recommendations are relevant
-
-### 6. Performance Dashboard
-
-**Location**: `/dashboard`
-
-**What to Test**:
-- ✅ Total P&L correct
-- ✅ Win rate accurate
-- ✅ Charts display properly
-- ✅ Recent trades shown
-
-**Expected Results**:
-- Dashboard metrics match summary
-- Charts are interactive
-- Data loads quickly
-
-### 7. Morning Brief
-
-**Location**: `/dashboard/morning-brief`
-
-**What to Test**:
-- ✅ Yesterday's performance shown
-- ✅ Rule violations listed
-- ✅ Focus points generated
-- ✅ Economic events displayed
-
-**Expected Results**:
-- Brief generates correctly
-- All sections populated
-- Dismissal works
-
-### 8. Benchmark Comparison
-
-**Location**: `/dashboard` (Benchmark card)
-
-**What to Test**:
-- ✅ Portfolio vs Nifty 50
-- ✅ Portfolio vs Sensex
-- ✅ Alpha calculation
-- ✅ Chart comparison
-
-**Expected Results**:
-- Benchmarks load (if Zerodha connected)
-- Charts show comparison
-- Alpha calculated correctly
-
-### 9. Reports
-
-**Location**: `/dashboard/reports`
-
-**What to Test**:
-- ✅ PDF generation
-- ✅ CSV export
-- ✅ Scheduled reports
-- ✅ Report history
-
-**Expected Results**:
-- Reports generate correctly
-- All data included
-- Formats are correct
-
-### 10. ML Insights
-
-**Location**: `/dashboard/settings/ml-insights`
-
-**What to Test**:
-- ✅ Personalized insights generated
-- ✅ Confidence scores shown
-- ✅ Recommendations appear
-
-**Expected Results**:
-- Insights are relevant
-- Scores are reasonable
-- Recommendations actionable
-
-## 📈 Expected Statistics
-
-After import, you should see:
-
-```
-Total Trades: 400-500
-Net P&L: ₹45,000 - ₹65,000
-Win Rate: 50-55%
-Total Winners: ~250-275
-Total Losers: ~150-225
-```
-
-### By Strategy
-
-- **Scalping**: ~160 trades, 58% win rate
-- **Intraday**: ~120 trades, 52% win rate
-- **Swing**: ~80 trades, 48% win rate
-- **Options**: ~40 trades, 45% win rate
-
-### Patterns
-
-- Revenge Trading: 20 instances
-- FOMO: 15 instances
-- Overtrading: 25 days
-- Overconfidence: 10 instances
-- Loss Aversion: 30 instances
-- Weekend Warrior: 15 instances
-- Revenge Sizing: 18 instances
-- News Trading: 12 instances
-
-## 🔍 Verification Checklist
-
-After importing, verify:
-
-- [ ] Total trade count matches
-- [ ] Net P&L is in expected range
-- [ ] All patterns are detected
-- [ ] All rule violations logged
-- [ ] Strategy analysis works
-- [ ] Risk metrics calculated
-- [ ] AI insights generated
-- [ ] Charts render correctly
-- [ ] Reports generate properly
-- [ ] Morning brief works
-- [ ] Benchmark comparison loads
-- [ ] ML insights appear
-
-## 🐛 Troubleshooting
-
-### Import Fails
-
-- Check CSV format matches expected columns
-- Verify date format is YYYY-MM-DD
-- Ensure all required columns are mapped
-
-### Patterns Not Detected
-
-- Wait for background job to run (pattern detection is async)
-- Check automation preferences are enabled
-- Verify pattern detection is enabled in settings
-
-### Metrics Don't Match
-
-- Check if trades are filtered by profile
-- Verify date range filters
-- Check for soft-deleted trades
-
-## 📝 Notes
-
-- The CSV uses **Indian market symbols** (NIFTY, BANKNIFTY, stocks)
-- Dates are in **IST timezone**
-- Prices are **realistic** based on current market levels
-- P&L is calculated with **fees and commissions** included
-- All trades are **completed** status
-
-## 🎯 Next Steps
-
-1. Import the CSV
-2. Review dashboard metrics
-3. Check pattern detection
-4. Test all features
-5. Verify rule violations
-6. Generate reports
-7. Test AI coach
-8. Review ML insights
+TradeAutopsy uses a comprehensive testing setup with:
+- **Jest** for unit and integration tests
+- **Playwright** for end-to-end (E2E) tests
+- **React Testing Library** for component tests
 
 ---
 
-**Happy Testing! 🚀**
+## Quick Start
 
-For issues or questions, check the main README or open an issue.
+### Install Dependencies
+
+```bash
+npm install
+```
+
+### Install Playwright Browsers
+
+```bash
+# Install only Chromium and Firefox (recommended - most reliable)
+npm run test:e2e:install
+
+# Or install all browsers (may fail on some systems)
+npm run test:e2e:install:all
+
+# Or install manually
+npx playwright install chromium
+npx playwright install firefox
+```
+
+### Run Tests
+
+```bash
+# Unit tests
+npm test
+
+# Unit tests in watch mode
+npm run test:watch
+
+# Unit tests with coverage
+npm run test:coverage
+
+# E2E tests
+npm run test:e2e
+
+# E2E tests with UI
+npm run test:e2e:ui
+
+# E2E tests in debug mode
+npm run test:e2e:debug
+
+# Run all tests
+npm run test:all
+```
+
+---
+
+## Unit Tests
+
+### Structure
+
+Unit tests are located in:
+- `__tests__/` - Main test directory
+- `**/*.test.ts` - Test files alongside source files
+- `**/*.spec.ts` - Alternative test file naming
+
+### Example Test
+
+```typescript
+import { formatCurrency } from '@/lib/utils/currency'
+
+describe('formatCurrency', () => {
+  it('should format positive numbers', () => {
+    expect(formatCurrency(123456.78)).toBe('₹1,23,456.78')
+  })
+})
+```
+
+### Running Unit Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests for specific file
+npm test -- currency.test.ts
+```
+
+### Coverage Thresholds
+
+Current coverage thresholds (in `jest.config.js`):
+- Branches: 70%
+- Functions: 70%
+- Lines: 70%
+- Statements: 70%
+
+---
+
+## E2E Tests
+
+### Structure
+
+E2E tests are located in:
+- `e2e/` - E2E test directory
+- `*.spec.ts` - Test specification files
+
+### Example E2E Test
+
+```typescript
+import { test, expect } from '@playwright/test'
+
+test('should display login page', async ({ page }) => {
+  await page.goto('/login')
+  await expect(page).toHaveTitle(/TradeAutopsy/i)
+})
+```
+
+### Running E2E Tests
+
+```bash
+# Run all E2E tests
+npm run test:e2e
+
+# Run with UI
+npm run test:e2e:ui
+
+# Debug mode
+npm run test:e2e:debug
+
+# Run specific test file
+npx playwright test e2e/auth.spec.ts
+```
+
+### E2E Test Configuration
+
+Configuration is in `playwright.config.ts`:
+- Tests run against `http://localhost:3000` by default
+- Automatically starts dev server before tests
+- Supports multiple browsers (Chrome, Firefox, Safari)
+- Includes mobile viewport tests
+
+---
+
+## Test Utilities
+
+### Test Helpers
+
+Located in `__tests__/utils/test-helpers.ts`:
+
+```typescript
+import { createMockSession, createMockTrade } from '@/__tests__/utils/test-helpers'
+
+// Create mock session
+const session = createMockSession({ email: 'test@example.com' })
+
+// Create mock trade
+const trade = createMockTrade({ symbol: 'NIFTY', pnl: 1000 })
+```
+
+### Available Helpers
+
+- `createMockSession()` - Create mock session data
+- `createMockTrade()` - Create mock trade object
+- `createMockProfile()` - Create mock profile object
+- `createMockRequest()` - Create mock Next.js request
+- `createMockResponse()` - Create mock Next.js response
+- `waitFor()` - Wait for async operations
+
+---
+
+## Writing Tests
+
+### Unit Test Best Practices
+
+1. **Test one thing at a time**
+   ```typescript
+   it('should format positive numbers', () => {
+     expect(formatCurrency(1000)).toBe('₹1,000.00')
+   })
+   ```
+
+2. **Use descriptive test names**
+   ```typescript
+   // Good
+   it('should return null when session cookie is missing')
+   
+   // Bad
+   it('should work')
+   ```
+
+3. **Test edge cases**
+   ```typescript
+   it('should handle null values', () => {
+     expect(formatCurrency(null)).toBe('₹0')
+   })
+   ```
+
+4. **Mock external dependencies**
+   ```typescript
+   jest.mock('@/lib/workos', () => ({
+     workos: { userManagement: { authenticateWithPassword: jest.fn() } }
+   }))
+   ```
+
+### Component Test Best Practices
+
+1. **Test user interactions, not implementation**
+   ```typescript
+   // Good - tests user behavior
+   await user.click(screen.getByRole('button', { name: /submit/i }))
+   
+   // Bad - tests implementation
+   expect(button.props.onClick).toHaveBeenCalled()
+   ```
+
+2. **Use accessible queries**
+   ```typescript
+   // Good
+   screen.getByRole('button', { name: /submit/i })
+   screen.getByLabelText(/email/i)
+   
+   // Avoid
+   screen.getByTestId('submit-button')
+   ```
+
+### E2E Test Best Practices
+
+1. **Test critical user flows**
+   ```typescript
+   test('user can login and view dashboard', async ({ page }) => {
+     await page.goto('/login')
+     await page.fill('input[type="email"]', 'test@example.com')
+     await page.fill('input[type="password"]', 'password')
+     await page.click('button[type="submit"]')
+     await expect(page).toHaveURL(/\/dashboard/)
+   })
+   ```
+
+2. **Use page object pattern for complex flows**
+   ```typescript
+   class LoginPage {
+     constructor(private page: Page) {}
+     async login(email: string, password: string) {
+       await this.page.fill('input[type="email"]', email)
+       await this.page.fill('input[type="password"]', password)
+       await this.page.click('button[type="submit"]')
+     }
+   }
+   ```
+
+3. **Test responsive design**
+   ```typescript
+   test('should be responsive on mobile', async ({ page }) => {
+     await page.setViewportSize({ width: 375, height: 667 })
+     // Test mobile layout
+   })
+   ```
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions
+
+Tests run automatically on:
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop`
+
+Workflow file: `.github/workflows/test.yml`
+
+### Local CI Simulation
+
+```bash
+# Simulate CI environment
+CI=true npm run test:ci
+CI=true npm run test:e2e
+```
+
+---
+
+## Test Coverage
+
+### View Coverage Report
+
+```bash
+npm run test:coverage
+```
+
+Coverage report is generated in `coverage/` directory.
+
+### Coverage Goals
+
+- **Current Threshold:** 70% for all metrics
+- **Target:** 80%+ for critical paths
+- **Focus Areas:**
+  - Authentication flows
+  - Trade calculations
+  - API routes
+  - Utility functions
+
+---
+
+## Debugging Tests
+
+### Unit Tests
+
+```bash
+# Run specific test
+npm test -- --testNamePattern="should format currency"
+
+# Run in debug mode
+node --inspect-brk node_modules/.bin/jest --runInBand
+```
+
+### E2E Tests
+
+```bash
+# Debug mode (opens Playwright Inspector)
+npm run test:e2e:debug
+
+# Run with UI (interactive mode)
+npm run test:e2e:ui
+
+# Run specific test
+npx playwright test e2e/auth.spec.ts --debug
+```
+
+---
+
+## Common Issues
+
+### Issue: Playwright Browser Installation Fails
+
+**Error:** `Failed to download Webkit` or browser download errors
+
+**Solution:** Install browsers individually (recommended)
+```bash
+# Install only Chromium and Firefox (most reliable)
+npm run test:e2e:install
+
+# Or skip Webkit and use Chromium/Firefox only
+# The config has been updated to skip Webkit by default
+```
+
+See `TESTING_TROUBLESHOOTING.md` for detailed solutions.
+
+### Issue: Tests fail with "Cannot find module"
+
+**Solution:** Clear Jest cache
+```bash
+npm test -- --clearCache
+```
+
+### Issue: E2E tests timeout
+
+**Solution:** Increase timeout in `playwright.config.ts`
+```typescript
+use: {
+  actionTimeout: 30000, // 30 seconds
+}
+```
+
+### Issue: Mock not working
+
+**Solution:** Ensure mocks are in `jest.setup.js` or imported in test file
+
+---
+
+## Test Files Created
+
+### Unit Tests
+- `__tests__/lib/auth/session.test.ts` - Session management tests
+- `__tests__/lib/validation/schemas.test.ts` - Validation schema tests
+- `__tests__/api/auth/login.test.ts` - Login API route tests
+- `__tests__/components/Button.test.tsx` - Component test example
+
+### E2E Tests
+- `e2e/auth.spec.ts` - Authentication flow tests
+- `e2e/dashboard.spec.ts` - Dashboard tests
+
+### Configuration
+- `playwright.config.ts` - Playwright configuration
+- `.github/workflows/test.yml` - CI/CD workflow
+
+### Utilities
+- `__tests__/utils/test-helpers.ts` - Test helper functions
+
+---
+
+## Next Steps
+
+1. **Add more unit tests** for critical business logic
+2. **Expand E2E tests** for key user flows
+3. **Set up test data fixtures** for consistent testing
+4. **Add visual regression tests** (optional)
+5. **Set up performance testing** (optional)
+
+---
+
+## Resources
+
+- [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [Playwright Documentation](https://playwright.dev/docs/intro)
+- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- [Testing Best Practices](https://kentcdodds.com/blog/common-mistakes-with-react-testing-library)
+
+---
+
+**Last Updated:** December 2024

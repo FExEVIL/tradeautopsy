@@ -1,32 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { destroySession } from '@/lib/auth/session'
 
+/**
+ * POST /api/auth/logout
+ * 
+ * Clears session cookie
+ */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-
-    // Sign out from Supabase
-    await supabase.auth.signOut()
-
-    // Create response
-    const response = NextResponse.json({ success: true })
-
-    // Clear WorkOS cookies
-    response.cookies.delete('workos_user_id')
-    response.cookies.delete('workos_profile_id')
-    response.cookies.delete('workos_email')
-
-    // Clear Supabase cookies
-    response.cookies.delete('sb-access-token')
-    response.cookies.delete('sb-refresh-token')
-
-    return response
-
-  } catch (error: any) {
+    await destroySession()
+    
+    return NextResponse.json({ success: true })
+  } catch (error) {
     console.error('[Logout] Error:', error)
     return NextResponse.json(
-      { error: `Failed to logout: ${error.message}` },
+      { error: 'Failed to logout' },
       { status: 500 }
     )
   }
+}
+
+export async function GET(request: NextRequest) {
+  // Allow GET for simple logout links
+  return POST(request)
 }

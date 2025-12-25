@@ -1,85 +1,72 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+/**
+ * EDGE-COMPATIBLE MIDDLEWARE
+ * 
+ * This middleware works in Edge Runtime (no Node.js modules like crypto/iron-session)
+ * Uses simple cookie parsing instead of encrypted sessions
+ */
+
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  const { pathname } = request.nextUrl
 
-  // ❌ remove await here
-  const cookieStore = request.cookies
+  // ========================================
+  // STEP 1: Allow static files and API routes
+  // ========================================
+  if (
+    pathname.startsWith('/_next') ||     // Next.js internals
+    pathname.startsWith('/api') ||        // API routes
+    pathname.includes('.')                // Static files (.svg, .png, etc)
+  ) {
+    return NextResponse.next()
+  }
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: any) {
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value: '', ...options })
-        },
-      },
-    }
+  // ========================================
+  // STEP 2: Define public routes
+  // ========================================
+  const publicRoutes = ['/', '/login', '/signup', '/verify']
+  const isPublicRoute = publicRoutes.some(route => 
+    pathname === route || pathname.startsWith(route + '/')
   )
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  // ========================================
+  // STEP 3: Check authentication
+  // ========================================
+  const sessionCookie = request.cookies.get('tradeautopsy_session')
+  let isAuthenticated = false
 
-  // Check for WorkOS session
-  const workosUserId = request.cookies.get('workos_user_id')?.value
-  const workosProfileId = request.cookies.get('workos_profile_id')?.value
-
-  // Public routes that don't need authentication
-  const publicRoutes = [
-    '/login',
-    '/signup',
-    '/verify',
-    '/forgot-password',
-    '/reset-password',
-    '/auth/callback',
-    '/auth/error',
-    '/api/auth',
-    '/api/health',
-  ]
-  const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
-
-  // Protect dashboard routes
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!session && !workosUserId) {
-      return NextResponse.redirect(new URL('/login', request.url))
+  if (sessionCookie?.value) {
+    try {
+      // Parse JSON session cookie
+      const session = JSON.parse(sessionCookie.value)
+      isAuthenticated = !!(session?.userId)
+    } catch {
+      // Invalid session cookie - treat as unauthenticated
+      isAuthenticated = false
     }
   }
 
-  // Redirect to dashboard if already logged in and trying to access login/signup
-  if (
-    (request.nextUrl.pathname === '/login' ||
-      request.nextUrl.pathname === '/signup') &&
-    (session || workosUserId) &&
-    !isPublicRoute
-  ) {
+  // ========================================
+  // STEP 4: Redirect logic
+  // ========================================
+
+  // Redirect authenticated users away from auth pages to dashboard
+  if (isAuthenticated && isPublicRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  return response
+  // Redirect unauthenticated users to login with return URL
+  if (!isAuthenticated && !isPublicRoute) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // ========================================
+  // STEP 5: Allow request
+  // ========================================
+  return NextResponse.next()
 }
 
 export const config = {
@@ -87,9 +74,9 @@ export const config = {
     /*
      * Match all request paths except:
      * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files
+     * - _next/image (image optimization)
+     * - favicon.ico
+     * - Files with extensions (.svg, .png, etc)
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

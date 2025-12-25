@@ -7,10 +7,10 @@
 // CONSTANTS
 // ============================================
 
-const INR_SYMBOL = '₹'
-const INR_LOCALE = 'en-IN'
-const LAKH = 100000
-const CRORE = 10000000
+export const INR_SYMBOL = '₹'
+export const INR_LOCALE = 'en-IN'
+export const LAKH = 100000
+export const CRORE = 10000000
 
 // ============================================
 // FORMATTING FUNCTIONS
@@ -217,17 +217,4 @@ export function formatCurrencyInput(value: string): string {
 // ============================================
 // EXPORTS
 // ============================================
-
-export {
-  formatCurrency,
-  formatCompact,
-  formatPnL,
-  formatPercentage,
-  formatNumber,
-  parseCurrency,
-  formatCurrencyInput,
-  INR_SYMBOL,
-  INR_LOCALE,
-  LAKH,
-  CRORE,
-}
+// All functions and constants are exported individually above

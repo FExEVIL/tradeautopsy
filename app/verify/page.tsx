@@ -157,7 +157,11 @@ function VerifyForm() {
       }
 
       // Success - redirect to dashboard
+      console.log('[Verify] Success, redirecting to /dashboard')
+      
+      // Always redirect to dashboard, no variables
       router.push('/dashboard')
+      router.refresh()
     } catch (err) {
       const appError = handleError(err)
       // Provide user-friendly error messages

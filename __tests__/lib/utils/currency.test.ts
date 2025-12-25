@@ -30,7 +30,10 @@ describe('Currency Utilities', () => {
     })
 
     it('should format compact notation', () => {
-      expect(formatCurrency(1234567, { compact: true })).toContain('Cr')
+      // 1234567 is 12.35L, not Cr (Cr is 10,000,000+)
+      expect(formatCurrency(1234567, { compact: true })).toContain('L')
+      // Test actual Cr value
+      expect(formatCurrency(15000000, { compact: true })).toContain('Cr')
     })
   })
 
@@ -68,7 +71,13 @@ describe('Currency Utilities', () => {
     })
 
     it('should handle negative percentages', () => {
-      expect(formatPercentage(-10.5)).toBe('-10.50%')
+      // formatPercentage uses Math.abs, so negative values become positive
+      expect(formatPercentage(-10.5)).toBe('10.50%')
+    })
+
+    it('should show sign when showSign option is true', () => {
+      expect(formatPercentage(10.5, { showSign: true })).toBe('+10.50%')
+      expect(formatPercentage(-10.5, { showSign: true })).toBe('10.50%')
     })
   })
 

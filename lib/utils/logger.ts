@@ -1,114 +1,26 @@
-/**
- * Logging System
- * Pino-based logging with sensitive data redaction
- */
-
-import pino from 'pino'
-
-// ============================================
-// SENSITIVE DATA REDACTION
-// ============================================
-
-const sensitiveKeys = [
-  'password',
-  'token',
-  'secret',
-  'key',
-  'authorization',
-  'cookie',
-  'access_token',
-  'refresh_token',
-  'api_key',
-  'apikey',
-  'auth',
-  'credential',
-]
-
-function redactSensitiveData(obj: any): any {
-  if (typeof obj !== 'object' || obj === null) {
-    return obj
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map(redactSensitiveData)
-  }
-
-  const redacted: any = {}
-
-  for (const [key, value] of Object.entries(obj)) {
-    const lowerKey = key.toLowerCase()
-
-    if (sensitiveKeys.some((sk) => lowerKey.includes(sk))) {
-      redacted[key] = '[REDACTED]'
-    } else if (typeof value === 'object' && value !== null) {
-      redacted[key] = redactSensitiveData(value)
-    } else {
-      redacted[key] = value
-    }
-  }
-
-  return redacted
+const logger = {
+  info: (data: any, msg?: string) => {
+    console.log(msg || 'INFO:', data)
+  },
+  error: (data: any, msg?: string) => {
+    console.error(msg || 'ERROR:', data)
+  },
+  warn: (data: any, msg?: string) => {
+    console.warn(msg || 'WARN:', data)
+  },
+  debug: (data: any, msg?: string) => {
+    console.debug(msg || 'DEBUG:', data)
+  },
 }
 
-// ============================================
-// LOGGER CONFIGURATION
-// ============================================
-
-const isDevelopment = process.env.NODE_ENV === 'development'
-
-const logger = pino({
-  level: process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info'),
-  transport: isDevelopment
-    ? {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'HH:MM:ss',
-          ignore: 'pid,hostname',
-        },
-      }
-    : undefined,
-  formatters: {
-    level: (label) => {
-      return { level: label.toUpperCase() }
-    },
-  },
-  serializers: {
-    req: (req) => {
-      return {
-        method: req.method,
-        url: req.url,
-        headers: redactSensitiveData(req.headers),
-      }
-    },
-    res: (res) => {
-      return {
-        statusCode: res.statusCode,
-      }
-    },
-    err: pino.stdSerializers.err,
-  },
-})
-
-// ============================================
-// CONTEXTUAL LOGGER
-// ============================================
-
-export function createLogger(context: Record<string, any> = {}) {
-  return logger.child(redactSensitiveData(context))
-}
-
-// ============================================
-// LOGGING FUNCTIONS
-// ============================================
-
+// Helper functions for backward compatibility
 export function logApiCall(
   method: string,
   path: string,
   statusCode: number,
   duration: number,
   userId?: string,
-  error?: Error
+  error?: Error | any
 ) {
   const logData: any = {
     type: 'api_call',
@@ -124,13 +36,29 @@ export function logApiCall(
 
   if (error) {
     logData.error = {
-      message: error.message,
+      message: error.message || String(error),
       stack: error.stack,
     }
     logger.error(logData, `API ${method} ${path} failed`)
   } else {
     logger.info(logData, `API ${method} ${path}`)
   }
+}
+
+export function logEvent(
+  event: string,
+  userId: string,
+  data?: Record<string, any>
+) {
+  logger.info(
+    {
+      type: 'event',
+      event,
+      userId,
+      data: data || {},
+    },
+    `Event: ${event}`
+  )
 }
 
 export function logDbQuery(
@@ -141,7 +69,7 @@ export function logDbQuery(
 ) {
   const logData: any = {
     type: 'db_query',
-    query: query.substring(0, 200), // Truncate long queries
+    query: query.substring(0, 200),
     duration,
   }
 
@@ -168,7 +96,7 @@ export function logCacheOp(
   const logData: any = {
     type: 'cache_op',
     operation,
-    key: key.substring(0, 100), // Truncate long keys
+    key: key.substring(0, 100),
   }
 
   if (duration !== undefined) {
@@ -185,25 +113,26 @@ export function logCacheOp(
   }
 }
 
-export function logEvent(
-  event: string,
-  userId: string,
-  data?: Record<string, any>
-) {
-  logger.info(
-    {
-      type: 'event',
-      event,
-      userId,
-      data: redactSensitiveData(data || {}),
+export function createLogger(context: Record<string, any> = {}) {
+  return {
+    info: (data: any, msg?: string) => {
+      const mergedData = typeof data === 'object' ? { ...context, ...data } : data
+      logger.info(mergedData, msg)
     },
-    `Event: ${event}`
-  )
+    error: (data: any, msg?: string) => {
+      const mergedData = typeof data === 'object' ? { ...context, ...data } : data
+      logger.error(mergedData, msg)
+    },
+    warn: (data: any, msg?: string) => {
+      const mergedData = typeof data === 'object' ? { ...context, ...data } : data
+      logger.warn(mergedData, msg)
+    },
+    debug: (data: any, msg?: string) => {
+      const mergedData = typeof data === 'object' ? { ...context, ...data } : data
+      logger.debug(mergedData, msg)
+    },
+  }
 }
-
-// ============================================
-// PERFORMANCE LOGGING
-// ============================================
 
 export function createTimer(label: string) {
   const start = Date.now()
@@ -240,9 +169,5 @@ export async function measureAsync<T>(
   }
 }
 
-// ============================================
-// EXPORTS
-// ============================================
-
+export { logger }
 export default logger
-// All other functions are already exported above
