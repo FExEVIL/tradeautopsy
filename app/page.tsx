@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { OrganizationStructuredData, ProductStructuredData } from '@/components/SEO/StructuredData'
+import { Logo } from '@/components/ui/Logo'
 
 export default function HomePage() {
   const [scrolled, setScrolled] = useState(false)
@@ -27,12 +28,7 @@ export default function HomePage() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-200 border border-gray-300">
-                <span className="text-black font-bold text-sm">T</span>
-              </div>
-              <span className="text-lg font-semibold">TradeAutopsy</span>
-            </Link>
+            <Logo size="md" showText={true} href="/" />
 
             {/* Right Actions - Simplified */}
             <div className="flex items-center gap-3">

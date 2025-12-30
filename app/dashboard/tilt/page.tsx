@@ -1,17 +1,31 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import TiltClient from './TiltClient'
 
 export default async function TiltPage() {
   const supabase = await createClient()
+  const cookieStore = await cookies()
+  
+  // Check Supabase auth
   const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
+  
+  // Check WorkOS auth (fallback)
+  const workosUserId = cookieStore.get('workos_user_id')?.value
+  const workosProfileId = cookieStore.get('workos_profile_id')?.value || cookieStore.get('active_profile_id')?.value
+  
+  // Must have either Supabase user OR WorkOS session
+  if (!user && !workosUserId) {
+    redirect('/login')
+  }
+  
+  // Use effective user ID for queries
+  const effectiveUserId = user?.id || workosProfileId
 
   const { data: trades } = await supabase
     .from('trades')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUserId)
     .order('trade_date', { ascending: true }) 
 
   // --- TILT ALGORITHM ---

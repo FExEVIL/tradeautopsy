@@ -1,18 +1,32 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { AlertAnalyticsClient } from './AlertAnalyticsClient'
 
 export default async function AlertAnalyticsPage() {
   const supabase = await createClient()
+  const cookieStore = await cookies()
+  
+  // Check Supabase auth
   const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
+  
+  // Check WorkOS auth (fallback)
+  const workosUserId = cookieStore.get('workos_user_id')?.value
+  const workosProfileId = cookieStore.get('workos_profile_id')?.value || cookieStore.get('active_profile_id')?.value
+  
+  // Must have either Supabase user OR WorkOS session
+  if (!user && !workosUserId) {
+    redirect('/login')
+  }
+  
+  // Use effective user ID for queries
+  const effectiveUserId = user?.id || workosProfileId
 
   // Fetch alert effectiveness stats
   const { data: stats, error } = await supabase
     .from('predictive_alerts')
     .select('alert_type, user_action, helpful, confidence, created_at')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUserId)
 
   if (error && (error.code === 'PGRST205' || error.code === 'PGRST116')) {
     // Table doesn't exist yet

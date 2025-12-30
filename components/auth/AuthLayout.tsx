@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { ReactNode } from 'react'
+import { Logo } from '@/components/ui/Logo'
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -18,12 +19,7 @@ export function AuthLayout({ children, showHeader = true, headerLink }: AuthLayo
       {/* Header */}
       {showHeader && (
         <header className="w-full px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold text-sm">T</span>
-            </div>
-            <span className="text-lg font-semibold">TradeAutopsy</span>
-          </Link>
+          <Logo size="md" showText={true} href="/" />
           {headerLink && (
             <Link
               href={headerLink.href}

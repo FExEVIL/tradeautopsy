@@ -26,7 +26,9 @@ export const workos = isConfigured
 export const WORKOS_CLIENT_ID = process.env.WORKOS_CLIENT_ID || ''
 export const WORKOS_REDIRECT_URI = 
   process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI || 
-  'http://localhost:3000/auth/callback/workos'
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://www.tradeautopsy.in/api/auth/callback'
+    : 'http://localhost:3000/api/auth/callback')
 export const WORKOS_WEBHOOK_SECRET = process.env.WORKOS_WEBHOOK_SECRET || ''
 
 // ============================================
@@ -46,6 +48,7 @@ export function isWorkOSEnabled(): boolean {
 
 export function getAuthorizationUrl(provider: OAuthProvider | SSOProvider): string {
   if (!workos) {
+    console.error('[WorkOS] Not initialized. API Key:', !!process.env.WORKOS_API_KEY, 'Client ID:', !!process.env.WORKOS_CLIENT_ID)
     throw new ExternalServiceError(
       'WorkOS',
       'WorkOS client not initialized. Please configure WORKOS_API_KEY and WORKOS_CLIENT_ID.',
@@ -54,13 +57,41 @@ export function getAuthorizationUrl(provider: OAuthProvider | SSOProvider): stri
     )
   }
 
+  if (!WORKOS_CLIENT_ID) {
+    console.error('[WorkOS] Client ID is missing')
+    throw new ExternalServiceError(
+      'WorkOS',
+      'WorkOS client ID not configured. Please set WORKOS_CLIENT_ID.',
+      undefined,
+      { provider }
+    )
+  }
+
+  if (!WORKOS_REDIRECT_URI) {
+    console.error('[WorkOS] Redirect URI is missing')
+    throw new ExternalServiceError(
+      'WorkOS',
+      'WorkOS redirect URI not configured. Please set NEXT_PUBLIC_WORKOS_REDIRECT_URI.',
+      undefined,
+      { provider }
+    )
+  }
+
+  console.log('[WorkOS] Getting auth URL for provider:', provider)
+  console.log('[WorkOS] Client ID:', WORKOS_CLIENT_ID.substring(0, 10) + '...')
+  console.log('[WorkOS] Redirect URI:', WORKOS_REDIRECT_URI)
+
   try {
-    return workos.userManagement.getAuthorizationUrl({
+    const url = workos.userManagement.getAuthorizationUrl({
       provider: provider as any,
       clientId: WORKOS_CLIENT_ID,
       redirectUri: WORKOS_REDIRECT_URI,
     })
+
+    console.log('[WorkOS] Generated auth URL:', url ? url.substring(0, 50) + '...' : 'null')
+    return url
   } catch (error) {
+    console.error('[WorkOS] Failed to generate auth URL:', error)
     throw new ExternalServiceError(
       'WorkOS',
       'Failed to generate authorization URL',

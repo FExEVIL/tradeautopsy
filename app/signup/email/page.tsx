@@ -48,7 +48,7 @@ export default function EmailSignupPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch('/api/auth/signup-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
@@ -60,12 +60,9 @@ export default function EmailSignupPage() {
         throw new Error(data.error || 'Failed to create account')
       }
 
-      // Redirect to onboarding if needed, otherwise dashboard
-      if (data.needsOnboarding) {
-        router.push('/onboarding')
-      } else {
-        router.push('/dashboard')
-      }
+      // Show success message and redirect to login
+      // User needs to sign in after creating account
+      router.push('/login?signup=success')
     } catch (err: any) {
       setError(err.message || 'Failed to create account. Please try again.')
       setLoading(false)

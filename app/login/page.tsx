@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { Mail, Github, Shield, Key, Loader2 } from 'lucide-react'
 import { z } from 'zod'
 import { handleError } from '@/lib/utils/error-handler'
+import { Logo } from '@/components/ui/Logo'
 
 // ============================================
 // VALIDATION SCHEMA
@@ -25,9 +26,49 @@ const emailSchema = z.string().email('Invalid email address')
 function LoginForm() {
   const router = useRouter()
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authMethod, setAuthMethod] = useState<'otp' | 'password'>('otp')
   const [loading, setLoading] = useState(false)
   const [ssoLoading, setSsoLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    try {
+      const validatedEmail = emailSchema.parse(email)
+
+      if (!password) {
+        throw new Error('Password is required')
+      }
+
+      const response = await fetch('/api/auth/login-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: validatedEmail, password }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Invalid email or password')
+      }
+
+      console.log('[Login] Success via:', data.auth_provider || 'unknown')
+
+      // Redirect to dashboard
+      router.push(data.redirectTo || '/dashboard')
+      router.refresh()
+    } catch (err) {
+      const appError = handleError(err)
+      console.error('[Login] Error:', appError)
+      setError(appError.message || 'Invalid email or password')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,15 +116,32 @@ function LoginForm() {
 
       const data = await response.json()
 
+      // DEBUG: Log the response
+      console.log('[OAuth] Response status:', response.status)
+      console.log('[OAuth] Response data:', JSON.stringify(data, null, 2))
+
       if (!response.ok) {
         // Extract error message from response
         const errorMessage = data.error?.message || data.error || data.message || 'Failed to get authorization URL'
         throw new Error(errorMessage)
       }
 
-      window.location.href = data.authorizationUrl
+      // Try multiple response structures
+      const authUrl = data.data?.authorizationUrl || // wrapped response (successResponse)
+                      data.authorizationUrl ||        // direct response
+                      data.url                        // alternative key
+
+      console.log('[OAuth] Extracted auth URL:', authUrl)
+
+      if (!authUrl || authUrl === 'undefined' || typeof authUrl !== 'string') {
+        console.error('[OAuth] Invalid auth URL:', { authUrl, data })
+        throw new Error('No valid authorization URL received from server')
+      }
+
+      window.location.href = authUrl
     } catch (err) {
       const appError = handleError(err)
+      console.error('[OAuth] Login error:', appError)
       setError(appError.message || 'An unexpected error occurred')
       setSsoLoading(null)
     }
@@ -106,39 +164,128 @@ function LoginForm() {
         </div>
       )}
 
-      {/* Email Form */}
-      <form onSubmit={handleEmailSubmit} className="space-y-4">
-        <input
-          type="email"
-          placeholder="Email Address"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value)
+      {/* Auth Method Toggle */}
+      <div className="flex bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg p-1">
+        <button
+          type="button"
+          onClick={() => {
+            setAuthMethod('otp')
             setError(null)
           }}
-          required
-          disabled={loading}
-          className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg text-white placeholder-[#6B6B6B] focus:outline-none focus:border-[#2A2A2A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-
-        <button
-          type="submit"
-          disabled={loading || !email}
-          className="w-full px-4 py-3 bg-white hover:bg-[#F5F5F5] disabled:bg-[#1A1A1A] disabled:text-[#6B6B6B] text-black font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+            authMethod === 'otp' 
+              ? 'bg-[#1A1A1A] text-white' 
+              : 'text-[#6B6B6B] hover:text-white'
+          }`}
         >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Sending code...
-            </>
-          ) : (
-            <>
-              <Mail className="w-5 h-5" />
-              Continue with Email
-            </>
-          )}
+          Magic Link
         </button>
-      </form>
+        <button
+          type="button"
+          onClick={() => {
+            setAuthMethod('password')
+            setError(null)
+          }}
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+            authMethod === 'password' 
+              ? 'bg-[#1A1A1A] text-white' 
+              : 'text-[#6B6B6B] hover:text-white'
+          }`}
+        >
+          Password
+        </button>
+      </div>
+
+      {/* Email/Password Form */}
+      {authMethod === 'otp' ? (
+        <form onSubmit={handleEmailSubmit} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              setError(null)
+            }}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg text-white placeholder-[#6B6B6B] focus:outline-none focus:border-[#2A2A2A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+
+          <button
+            type="submit"
+            disabled={loading || !email}
+            className="w-full px-4 py-3 bg-white hover:bg-[#F5F5F5] disabled:bg-[#1A1A1A] disabled:text-[#6B6B6B] text-black font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Sending code...
+              </>
+            ) : (
+              <>
+                <Mail className="w-5 h-5" />
+                Continue with Email
+              </>
+            )}
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handlePasswordLogin} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              setError(null)
+            }}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg text-white placeholder-[#6B6B6B] focus:outline-none focus:border-[#2A2A2A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              setError(null)
+            }}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#1F1F1F] rounded-lg text-white placeholder-[#6B6B6B] focus:outline-none focus:border-[#2A2A2A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+
+          <div className="flex items-center justify-between text-sm">
+            <Link 
+              href="/auth/reset-password" 
+              className="text-[#6B6B6B] hover:text-white transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !email || !password}
+            className="w-full px-4 py-3 bg-white hover:bg-[#F5F5F5] disabled:bg-[#1A1A1A] disabled:text-[#6B6B6B] text-black font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              <>
+                <Key className="w-5 h-5" />
+                Sign In
+              </>
+            )}
+          </button>
+        </form>
+      )}
 
       {/* Divider */}
       <div className="relative">
@@ -227,9 +374,7 @@ export default function LoginPage() {
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-50">
         <div className="w-full px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center justify-center w-10 h-10 bg-white rounded-lg">
-            <span className="text-xl font-bold text-black">T</span>
-          </Link>
+          <Logo size="md" showText={true} href="/" />
           <Link
             href="/signup"
             className="text-sm text-[#737373] hover:text-white transition-colors"

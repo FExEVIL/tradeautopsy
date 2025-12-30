@@ -1,19 +1,33 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { CoachClient } from './CoachClient'
 import { getCurrentActionPlan, generateWeeklyActionPlan } from '@/lib/action-plans'
 
 export default async function CoachPage() {
   const supabase = await createClient()
+  const cookieStore = await cookies()
+  
+  // Check Supabase auth
   const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
+  
+  // Check WorkOS auth (fallback)
+  const workosUserId = cookieStore.get('workos_user_id')?.value
+  const workosProfileId = cookieStore.get('workos_profile_id')?.value || cookieStore.get('active_profile_id')?.value
+  
+  // Must have either Supabase user OR WorkOS session
+  if (!user && !workosUserId) {
+    redirect('/login')
+  }
+  
+  // Use effective user ID for queries
+  const effectiveUserId = user?.id || workosProfileId
 
   // Fetch recent insights (handle table not existing gracefully)
   const { data: insights, error: insightsError } = await supabase
     .from('ai_insights')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUserId)
     .eq('dismissed', false)
     .order('created_at', { ascending: false })
     .limit(10)
@@ -25,13 +39,13 @@ export default async function CoachPage() {
 
   // Get current profile
   const { getCurrentProfileId } = await import('@/lib/profile-utils')
-  const profileId = await getCurrentProfileId(user.id)
+  const profileId = effectiveUserId ? await getCurrentProfileId(effectiveUserId) : workosProfileId
 
   // Fetch recent trades for context (filter by profile)
   let tradesQuery = supabase
     .from('trades')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUserId)
     .is('deleted_at', null)
   
   if (profileId) {

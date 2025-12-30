@@ -1,17 +1,71 @@
 'use client'
 
-import dynamic from 'next/dynamic'
-import React from 'react'
+/**
+ * Dynamic Imports for Heavy Components
+ * Reduces initial bundle size and improves FCP/LCP
+ */
 
-// ✅ Chart components (heavy - lazy load)
+import React from 'react'
+import dynamic from 'next/dynamic'
+
+// Skeleton loaders for better perceived performance
+export function ChartSkeleton() {
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 animate-pulse">
+      <div className="h-64 bg-gray-800 rounded" />
+    </div>
+  )
+}
+
+export function TableSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2, 3, 4, 5].map((i: number) => (
+        <div key={i} className="h-16 bg-gray-900 rounded animate-pulse" />
+      ))}
+    </div>
+  )
+}
+
+export function CardsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((i: number) => (
+        <div key={i} className="h-32 bg-gray-900 rounded animate-pulse" />
+      ))}
+    </div>
+  )
+}
+
+// Dynamic imports for heavy chart components
 export const DynamicCumulativePnLChart = dynamic(
-  () => import('@/app/dashboard/components/CumulativePnLChart').then(mod => ({ default: mod.CumulativePnLChart })),
+  () => import('../app/dashboard/components/CumulativePnLChart').then(mod => mod.CumulativePnLChart),
   {
     loading: () => <ChartSkeleton />,
-    ssr: false, // Charts don't need SSR
+    ssr: false,
   }
 )
 
+// Re-export the actual chart component
+export { CumulativePnLChart } from '@/app/dashboard/components/CumulativePnLChart'
+
+// Dynamic import for heavy analytics components
+export const DynamicAnalyticsCards = dynamic(
+  () => import('@/app/dashboard/components/AnalyticsCards').then(mod => ({ default: mod.AnalyticsCards })),
+  {
+    loading: () => <CardsSkeleton />,
+  }
+)
+
+// Dynamic import for trades table
+export const DynamicTradesTable = dynamic(
+  () => import('@/app/dashboard/components/TradesTable').then(mod => ({ default: mod.TradesTable })),
+  {
+    loading: () => <TableSkeleton />,
+  }
+)
+
+// Dynamic import for equity curve chart
 export const DynamicEquityCurve = dynamic(
   () => import('@/app/dashboard/components/ImprovedEquityCurve').then(mod => ({ default: mod.ImprovedEquityCurve })),
   {
@@ -20,79 +74,10 @@ export const DynamicEquityCurve = dynamic(
   }
 )
 
-export const DynamicMonthlyPnLChart = dynamic(
-  () => import('@/app/dashboard/components/MonthlyPnLChart').then(mod => ({ default: mod.MonthlyPnLChart })),
+// Dynamic import for behavioral insights
+export const DynamicBehavioralInsights = dynamic(
+  () => import('@/app/dashboard/components/BehavioralInsights').then(mod => ({ default: mod.BehavioralInsights })),
   {
-    loading: () => <ChartSkeleton />,
-    ssr: false,
+    loading: () => <div className="h-48 bg-gray-900 rounded animate-pulse" />,
   }
 )
-
-// ✅ Calendar (heavy - lazy load)
-export const DynamicCalendar = dynamic(
-  () => import('@/app/dashboard/calendar/CalendarClient'),
-  {
-    loading: () => <CalendarSkeleton />,
-    ssr: false,
-  }
-)
-
-// ✅ AI Coach (heavy - lazy load)
-export const DynamicAICoach = dynamic(
-  () => import('@/app/dashboard/components/AICoachCard'),
-  {
-    loading: () => <AICoachSkeleton />,
-    ssr: false,
-  }
-)
-
-// ✅ Intelligence Dashboard (heavy - lazy load)
-export const DynamicIntelligenceDashboard = dynamic(
-  () => import('@/app/dashboard/intelligence/IntelligenceDashboard'),
-  {
-    loading: () => <IntelligenceSkeleton />,
-    ssr: false,
-  }
-)
-
-// ✅ Audio Recorder (only needed on demand)
-export const DynamicAudioRecorder = dynamic(
-  () => import('@/components/AudioRecorder'),
-  {
-    loading: () => (
-      <div className="p-4 text-center text-gray-400">
-        Loading recorder...
-      </div>
-    ),
-    ssr: false,
-  }
-)
-
-// ✅ Skeleton components
-function ChartSkeleton() {
-  return (
-    <div className="w-full h-64 bg-gray-900 rounded-lg animate-pulse" />
-  )
-}
-
-function CalendarSkeleton() {
-  return (
-    <div className="w-full h-96 bg-gray-900 rounded-lg animate-pulse" />
-  )
-}
-
-function AICoachSkeleton() {
-  return (
-    <div className="w-full h-80 bg-gray-900 rounded-lg animate-pulse flex items-center justify-center">
-      <div className="text-gray-500">Loading AI Coach...</div>
-    </div>
-  )
-}
-
-function IntelligenceSkeleton() {
-  return (
-    <div className="w-full h-96 bg-gray-900 rounded-lg animate-pulse flex items-center justify-center">
-      <div className="text-gray-500">Loading Intelligence Dashboard...</div>
-    </div>
-  )
-}

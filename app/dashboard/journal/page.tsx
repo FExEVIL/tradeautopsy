@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { getCurrentProfileId } from '@/lib/profile-utils'
+import { cookies } from 'next/headers'
 import { JournalTable } from './components/JournalTable'
 import { JournalFilters } from './components/JournalFilters'
 import { SearchBar } from './components/SearchBar'
@@ -33,12 +34,25 @@ export default async function JournalPage({
   searchParams: Promise<SearchParams>
 }) {
   const supabase = await createClient()
+  const cookieStore = await cookies()
+  
+  // Check Supabase auth
   const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
+  
+  // Check WorkOS auth (fallback)
+  const workosUserId = cookieStore.get('workos_user_id')?.value
+  const workosProfileId = cookieStore.get('workos_profile_id')?.value || cookieStore.get('active_profile_id')?.value
+  
+  // Must have either Supabase user OR WorkOS session
+  if (!user && !workosUserId) {
+    redirect('/login')
+  }
+  
+  // Use effective user ID for queries
+  const effectiveUserId = user?.id || workosProfileId
 
   const params = await searchParams
-  const profileId = await getCurrentProfileId(user.id)
+  const profileId = effectiveUserId ? await getCurrentProfileId(effectiveUserId) : workosProfileId
 
   // Fetch trades with pagination (only load 25 at a time instead of 2000+)
   const page = parseInt((params.page as string) || '1')
@@ -50,7 +64,7 @@ export default async function JournalPage({
   const { data: allTradesForCharts } = await supabase
     .from('trades')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUserId)
     .is('deleted_at', null)
     .order('trade_date', { ascending: true })
     .limit(1000) // Limit to 1000 for performance
@@ -58,7 +72,7 @@ export default async function JournalPage({
   let query = supabase
     .from('trades')
     .select('id, symbol, tradingsymbol, trade_date, trade_type, transaction_type, pnl, strategy, setup, execution_rating, notes, has_audio_journal', { count: 'exact' })
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUserId)
     .is('deleted_at', null)
     .order('trade_date', { ascending: false })
     .range(offset, offset + limit - 1) // Only fetch current page
@@ -97,7 +111,7 @@ export default async function JournalPage({
   const { data: statsData } = await supabase
     .from('trades')
     .select('pnl, notes, has_audio_journal', { count: 'exact' })
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUserId)
     .is('deleted_at', null)
     .limit(1000) // Sample for stats (faster than all)
 

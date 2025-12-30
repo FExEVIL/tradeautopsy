@@ -31,6 +31,7 @@ import {
   Lightbulb,
   GraduationCap,
 } from 'lucide-react'
+import { Logo } from '@/components/ui/Logo'
 
 type BaseItem = {
   id: string
@@ -174,21 +175,12 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
       >
       {/* Header */}
       <div className={`${isCollapsed ? 'p-4 pt-6' : 'p-6 pt-8'} flex items-center justify-center transition-all duration-200`}>
-        {!isCollapsed ? (
-          <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold text-base">T</span>
-            </div>
-            <div>
-              <h1 className="text-text-primary font-semibold text-sm">TradeAutopsy</h1>
-              <p className="text-[10px] text-text-muted">Trading Analytics</p>
-            </div>
-          </Link>
-        ) : (
-          <Link href="/dashboard" className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-black font-bold text-base">T</span>
-          </Link>
-        )}
+        <Logo 
+          size="md" 
+          showText={!isCollapsed} 
+          showSubtitle={!isCollapsed}
+          href="/dashboard" 
+        />
       </div>
 
       {/* Navigation */}

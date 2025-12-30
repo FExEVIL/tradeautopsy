@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { handleError } from '@/lib/utils/error-handler'
+import { Logo } from '@/components/ui/Logo'
 
 // ============================================
 // OTP INPUT COMPONENT
@@ -320,9 +321,7 @@ export default function VerifyPage() {
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-50">
         <div className="w-full px-6 h-16 flex items-center justify-start">
-          <Link href="/" className="inline-flex items-center justify-center w-10 h-10 bg-white rounded-lg">
-            <span className="text-xl font-bold text-black">T</span>
-          </Link>
+          <Logo size="md" showText={true} href="/" />
         </div>
       </header>
 

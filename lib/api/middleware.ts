@@ -112,11 +112,18 @@ export function withMiddleware<T = any>(
           error: authError,
         } = await supabase.auth.getUser()
 
-        if (authError || !user) {
+        // Check WorkOS auth (fallback)
+        const cookieHeader = req.headers.get('cookie') || ''
+        const workosUserId = cookieHeader.match(/workos_user_id=([^;]+)/)?.[1]
+        const workosProfileId = cookieHeader.match(/workos_profile_id=([^;]+)/)?.[1] || 
+                                cookieHeader.match(/active_profile_id=([^;]+)/)?.[1]
+
+        // Must have either Supabase user OR WorkOS session
+        if ((authError || !user) && !workosUserId) {
           return unauthorizedResponse('Authentication required')
         }
 
-        userId = user.id
+        userId = user?.id || workosProfileId || null
 
         // Extract profile ID from header or cookie
         const profileHeader = req.headers.get('x-profile-id')
@@ -124,7 +131,7 @@ export function withMiddleware<T = any>(
           profileId = profileHeader === 'null' ? null : profileHeader
         } else {
           // Try to get from cookie or user preferences
-          const cookieProfileId = req.cookies.get('profile_id')?.value
+          const cookieProfileId = req.cookies.get('profile_id')?.value || workosProfileId
           profileId = cookieProfileId === 'null' || !cookieProfileId ? null : cookieProfileId
         }
       }

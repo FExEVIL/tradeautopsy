@@ -18,7 +18,9 @@ export const workos = isConfigured
 export const WORKOS_CLIENT_ID = process.env.WORKOS_CLIENT_ID || ''
 export const WORKOS_REDIRECT_URI = 
   process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI || 
-  'http://localhost:3000/auth/callback/workos'
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://www.tradeautopsy.in/api/auth/callback'
+    : 'http://localhost:3000/api/auth/callback')
 export const WORKOS_WEBHOOK_SECRET = process.env.WORKOS_WEBHOOK_SECRET || ''
 
 // Helper: Check if WorkOS is enabled

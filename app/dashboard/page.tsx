@@ -14,19 +14,19 @@ import {
 import { formatINR } from '@/lib/formatters'
 import { format } from 'date-fns'
 import { Suspense } from 'react'
-import { DynamicCumulativePnLChart } from '@/lib/dynamicImports'
+import { CumulativePnLChart } from './components/CumulativePnLChart'
 import { MetricsSkeleton, StatsSkeleton, ChartsSkeleton } from './components/DashboardMetricsSkeleton'
 import { BenchmarkCard } from './components/BenchmarkCard'
 import { AnimatedProgressBar } from './components/AnimatedProgressBar'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { AICoachCard } from './components/AICoachCard'
-import { PredictiveAlerts } from './components/PredictiveAlerts'
 import { MorningBrief } from './components/MorningBrief'
-import { FeatureGate } from '@/components/FeatureGate'
+import { PredictiveAlerts } from './components/PredictiveAlerts'
+import { AICoachCard } from './components/AICoachCard'
 import { PageLayout } from '@/components/layouts/PageLayout'
 import { StatCard } from '@/components/ui/StatCard'
 import { Card } from '@/components/ui/Card'
 import { BarChart3 } from 'lucide-react'
+import { cookies } from 'next/headers'
 
 type DashboardSearchParams = {
   range?: string
@@ -47,18 +47,23 @@ export default async function DashboardPage(
   props: { searchParams: Promise<DashboardSearchParams> }
 ) {
   const supabase = await createClient()
-
+  const cookieStore = await cookies()
+  
+  // Check Supabase auth
   const {
     data: { user },
-    error: authError,
   } = await supabase.auth.getUser()
-
-  if (authError || !user) {
+  
+  // Check WorkOS auth (fallback)
+  const workosUserId = cookieStore.get('workos_user_id')?.value
+  const workosProfileId = cookieStore.get('workos_profile_id')?.value || cookieStore.get('active_profile_id')?.value
+  
+  // Must have either Supabase user OR WorkOS session
+  if (!user && !workosUserId) {
     redirect('/login')
   }
-
+  
   const searchParams = await props.searchParams
-
   const now = new Date()
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
   const isAllRange = searchParams.range === 'ALL'
@@ -66,15 +71,17 @@ export default async function DashboardPage(
   const endDate = isAllRange ? new Date('2099-12-31') : (searchParams.end ? new Date(searchParams.end) : now)
   const granularity: TimeGranularity = searchParams.granularity || 'day'
 
-  // Get current profile
-  const profileId = await getCurrentProfileId(user.id)
+  // Get current profile - use WorkOS profile if no Supabase user
+  // For WorkOS users, the profile_id IS the user_id in the profiles table
+  const effectiveUserId = user?.id || workosProfileId
+  const profileId = effectiveUserId ? await getCurrentProfileId(effectiveUserId) : workosProfileId
 
   // ✅ Fetch only required columns for better performance
   // ✅ Use parallel fetching for metrics and trades
   const [metricsRes, tradesRes] = await Promise.all([
     // Fetch metrics using stored procedure (fast)
     supabase.rpc('get_user_metrics_fast', {
-      p_user_id: user.id,
+      p_user_id: effectiveUserId,
       p_profile_id: profileId || null,
       p_start_date: isAllRange ? null : startDate.toISOString().split('T')[0],
       p_end_date: isAllRange ? null : endDate.toISOString().split('T')[0],
@@ -84,7 +91,7 @@ export default async function DashboardPage(
       let query = supabase
         .from('trades')
         .select('id, trade_date, symbol, pnl') // ✅ Only fetch needed columns
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .is('deleted_at', null)
       
       if (profileId) {
@@ -139,7 +146,7 @@ export default async function DashboardPage(
 
   // ✅ Fetch progress in parallel with other data
   const [progress] = await Promise.all([
-    getJournalProgress(user.id, profileId),
+    getJournalProgress(effectiveUserId!, profileId),
   ])
 
   // Calculate metrics based on granularity (only for charts)
@@ -150,7 +157,7 @@ export default async function DashboardPage(
   const { data: zerodhaToken } = await supabase
     .from('zerodha_tokens')
     .select('access_token')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUserId)
     .single()
 
   const isZerodhaConnected = !!zerodhaToken?.access_token
@@ -169,15 +176,11 @@ export default async function DashboardPage(
       }
     >
 
-      {/* Morning Brief - Conditionally shown */}
-      <FeatureGate feature="morning_brief">
-        <MorningBrief />
-      </FeatureGate>
+      {/* Morning Brief */}
+      <MorningBrief />
 
-      {/* Predictive Alerts - Show at top if any - Conditionally shown */}
-      <FeatureGate feature="predictive_alerts">
-        <PredictiveAlerts />
-      </FeatureGate>
+      {/* Predictive Alerts */}
+      <PredictiveAlerts />
 
       {/* ✅ LCP ELEMENT - Top KPIs - Hero Net P&L + Journal Progress */}
       {/* This is likely the LCP element - render FIRST with server data */}
@@ -276,13 +279,7 @@ export default async function DashboardPage(
           </h3>
           {/* ✅ Fixed height to prevent layout shift (CLS optimization) */}
           <div className="h-80 min-h-[320px] relative">
-            <Suspense fallback={
-              <div className="absolute inset-0 bg-gray-900 rounded animate-pulse flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Loading chart...</span>
-              </div>
-            }>
-              <DynamicCumulativePnLChart data={cumulativeData} granularity={granularity} />
-            </Suspense>
+            <CumulativePnLChart data={cumulativeData} granularity={granularity} />
           </div>
         </Card>
 
@@ -328,11 +325,9 @@ export default async function DashboardPage(
         </Card>
       </div>
 
-      {/* AI Coach & Benchmark - Conditionally shown based on profile features */}
+      {/* AI Coach & Benchmark */}
       <div className="grid-2">
-        <FeatureGate feature="ai_coach">
-          <AICoachCard />
-        </FeatureGate>
+        <AICoachCard />
         <BenchmarkCard isConnected={isZerodhaConnected} />
       </div>
     </PageLayout>

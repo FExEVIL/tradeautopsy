@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AnimatedProgressBar } from './AnimatedProgressBar'
+import { Logo } from '@/components/ui/Logo'
 
 interface SidebarProps {
   activeSection?: string
@@ -71,15 +72,7 @@ export function Sidebar({ activeSection = 'overview', onSectionChange }: Sidebar
     <div className="w-80 h-screen bg-[#1a1a1a] border-r border-gray-800 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-gray-800">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-black font-bold text-sm">T</span>
-          </div>
-          <div>
-            <h1 className="text-white font-semibold text-sm">TradeAutopsy</h1>
-            <p className="text-[10px] text-gray-600">Trading Analytics</p>
-          </div>
-        </Link>
+        <Logo size="md" showText={true} showSubtitle={true} href="/dashboard" />
       </div>
 
       {/* Navigation */}

@@ -23,32 +23,34 @@ export async function GET(request: NextRequest) {
     // ✅ Better auth error handling
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError) {
-      console.error('[API] Auth error:', authError);
-      return NextResponse.json(
-        { error: 'Authentication failed', details: authError.message },
-        { status: 401, headers: corsHeaders }
-      );
-    }
+    // Check WorkOS auth (fallback)
+    const cookieHeader = request.headers.get('cookie') || '';
+    const workosUserId = cookieHeader.match(/workos_user_id=([^;]+)/)?.[1];
+    const workosProfileId = cookieHeader.match(/workos_profile_id=([^;]+)/)?.[1] || 
+                            cookieHeader.match(/active_profile_id=([^;]+)/)?.[1];
 
-    if (!user) {
-      console.error('[API] No user found');
+    // Must have either Supabase user OR WorkOS session
+    if ((authError || !user) && !workosUserId) {
+      console.error('[API] Auth error:', authError || 'No user found');
       return NextResponse.json(
         { error: 'Unauthorized - Please log in' },
         { status: 401, headers: corsHeaders }
       );
     }
 
+    // Use effective user ID for queries
+    const effectiveUserId = user?.id || workosProfileId;
+
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status');
 
-    console.log(`[API] Fetching results for user ${user.id}, limit: ${limit}`);
+    console.log(`[API] Fetching results for user ${effectiveUserId}, limit: ${limit}`);
 
     let query = supabase
       .from('backtest_results')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', effectiveUserId)
       .order('created_at', { ascending: false })
       .limit(limit);
 

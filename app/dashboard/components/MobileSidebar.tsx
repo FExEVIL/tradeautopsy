@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Logo } from '@/components/ui/Logo'
 
 interface MobileSidebarProps {
   activeSection?: string
@@ -60,12 +61,7 @@ export function MobileSidebar({ activeSection = 'overview', onSectionChange }: M
             </svg>
           </button>
           
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold text-sm">T</span>
-            </div>
-            <span className="text-white font-semibold text-sm">TradeAutopsy</span>
-          </Link>
+          <Logo size="sm" showText={true} href="/dashboard" />
 
           <div className="w-10 h-10 bg-gradient-to-br from-gray-700 to-gray-800 rounded-full flex items-center justify-center border border-white/10">
             <span className="text-sm font-semibold text-white">U</span>
@@ -95,15 +91,7 @@ export function MobileSidebar({ activeSection = 'overview', onSectionChange }: M
           {/* Header */}
           <div className="p-6 border-b border-gray-800">
             <div className="flex items-center justify-between mb-4">
-              <Link href="/dashboard" className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                  <span className="text-black font-bold text-sm">T</span>
-                </div>
-                <div>
-                  <h1 className="text-white font-semibold text-sm">TradeAutopsy</h1>
-                  <p className="text-[10px] text-gray-600">Trading Analytics</p>
-                </div>
-              </Link>
+              <Logo size="md" showText={true} showSubtitle={true} href="/dashboard" />
               <button
                 onClick={() => setIsOpen(false)}
                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"

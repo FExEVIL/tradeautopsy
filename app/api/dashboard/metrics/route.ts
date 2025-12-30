@@ -7,21 +7,31 @@ import { getCurrentProfileId } from '@/lib/profile-utils'
 // Using Node.js runtime for compatibility with Supabase authentication
 // export const runtime = 'edge' // ❌ Removed - incompatible with createClient() from @/utils/supabase/server
 
-// ✅ Cache at CDN level (Vercel Edge Network)
-export const revalidate = 60 // Revalidate every 60s
+// ✅ Force dynamic rendering (uses cookies)
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (authError || !user) {
+    // Check WorkOS auth (fallback)
+    const cookieHeader = request.headers.get('cookie') || ''
+    const workosUserId = cookieHeader.match(/workos_user_id=([^;]+)/)?.[1]
+    const workosProfileId = cookieHeader.match(/workos_profile_id=([^;]+)/)?.[1] || 
+                            cookieHeader.match(/active_profile_id=([^;]+)/)?.[1]
+
+    // Must have either Supabase user OR WorkOS session
+    if ((authError || !user) && !workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Use effective user ID for queries
+    const effectiveUserId = user?.id || workosProfileId
+
     const searchParams = request.nextUrl.searchParams
     const profileParam = searchParams.get('profile_id')
-    const profileId = profileParam || (await getCurrentProfileId(user.id))
+    const profileId = profileParam || (effectiveUserId ? await getCurrentProfileId(effectiveUserId) : workosProfileId)
     
     const startDate = searchParams.get('start_date')
     const endDate = searchParams.get('end_date')
@@ -30,7 +40,7 @@ export async function GET(request: NextRequest) {
     const { data: metricsData, error: metricsError } = await supabase
       .from('dashboard_metrics_mv')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', effectiveUserId)
       .maybeSingle()
 
     if (metricsError || !metricsData) {
@@ -38,7 +48,7 @@ export async function GET(request: NextRequest) {
       const { data: fallbackData, error: fallbackError } = await supabase.rpc(
         'get_user_metrics_fast',
         {
-          p_user_id: user.id,
+          p_user_id: effectiveUserId,
           p_profile_id: profileId || null,
           p_start_date: startDate || null,
           p_end_date: endDate || null,
@@ -50,7 +60,7 @@ export async function GET(request: NextRequest) {
         const { data: trades } = await supabase
           .from('trades')
           .select('pnl')
-          .eq('user_id', user.id)
+          .eq('user_id', effectiveUserId)
           .is('deleted_at', null)
           .limit(1000)
 

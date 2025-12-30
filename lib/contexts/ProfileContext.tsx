@@ -30,6 +30,15 @@ interface ProfileContextType {
 
 const ProfileContext = createContext<ProfileContextType | null>(null)
 
+// Helper to get cookie value
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null
+  return null
+}
+
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const supabase = createClient()
   const router = useRouter()
@@ -46,18 +55,26 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true)
       
-      // Get user
+      // Check Supabase auth first
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      
+      // Check WorkOS auth (fallback)
+      const workosUserId = getCookie('workos_user_id')
+      const workosProfileId = getCookie('workos_profile_id') || getCookie('active_profile_id')
+      
+      // Determine effective user ID
+      const effectiveUserId = user?.id || workosProfileId
+      
+      if (!effectiveUserId) {
         setIsLoading(false)
         return
       }
 
-      // Get all profiles
+      // Get all profiles for this user
       const { data: profilesData, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: true })
 
@@ -75,17 +92,24 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       setProfiles(profilesData || [])
 
-      // Get current profile from user preferences
-      const { data: prefs } = await supabase
-        .from('user_preferences')
-        .select('current_profile_id')
-        .eq('user_id', user.id)
-        .single()
+      // Get current profile from cookie or user preferences
+      let activeProfileId = getCookie('active_profile_id') || getCookie('current_profile_id')
+      
+      // Try user preferences if we have a Supabase user
+      if (!activeProfileId && user) {
+        const { data: prefs } = await supabase
+          .from('user_preferences')
+          .select('current_profile_id')
+          .eq('user_id', user.id)
+          .single()
+        
+        activeProfileId = prefs?.current_profile_id || null
+      }
 
       // Set active profile
       let active: Profile | null = null
-      if (prefs?.current_profile_id && profilesData) {
-        active = profilesData.find(p => p.id === prefs.current_profile_id) || null
+      if (activeProfileId && profilesData) {
+        active = profilesData.find(p => p.id === activeProfileId) || null
       }
       
       // Fallback to default profile
@@ -119,10 +143,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setActiveProfileState(profile)
       localStorage.setItem('current_profile_id', profileId)
 
-      // Save to user preferences
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
       // Update server-side (cookie + DB)
       let response: Response
       try {
@@ -135,13 +155,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         // Handle network errors gracefully
         if (fetchError.message?.includes('Failed to fetch') || fetchError.name === 'TypeError') {
           console.warn('Network error updating active profile on server, using local state only')
-          // Still update local state even if server update fails
-          const profile = profiles.find(p => p.id === profileId)
-          if (profile) {
-            setActiveProfileState(profile)
-            localStorage.setItem('current_profile_id', profileId)
-            router.refresh()
-          }
+          router.refresh()
           return
         }
         throw fetchError
@@ -167,8 +181,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   async function createProfile(profile: Partial<Profile>): Promise<Profile> {
     try {
+      // Get effective user ID (Supabase or WorkOS)
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('User not authenticated')
+      const workosProfileId = getCookie('workos_profile_id') || getCookie('active_profile_id')
+      const effectiveUserId = user?.id || workosProfileId
+      
+      if (!effectiveUserId) throw new Error('User not authenticated')
 
       const profileName = profile.name?.trim() || 'New Profile'
       
@@ -176,32 +194,26 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         throw new Error('Profile name is required')
       }
       
-      // Check if profile with this name already exists (use maybeSingle to avoid errors when not found)
+      // Check if profile with this name already exists
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .eq('name', profileName)
         .maybeSingle()
 
-      // If checkError exists and it's not a "not found" error, log it but continue
-      if (checkError) {
-        // PGRST116 = "The result contains 0 rows" - this is expected when no duplicate exists
-        if (checkError.code !== 'PGRST116') {
-          console.warn('Error checking for existing profile:', checkError)
-        }
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.warn('Error checking for existing profile:', checkError)
       }
 
-      // If a profile with this name exists, throw error before attempting insert
       if (existingProfile) {
-        console.log('Duplicate profile detected:', { profileName, existingProfileId: existingProfile.id })
         throw new Error('A profile with this name already exists. Please choose a different name.')
       }
 
       const { data: newProfile, error } = await supabase
         .from('profiles')
         .insert({
-          user_id: user.id,
+          user_id: effectiveUserId,
           name: profileName,
           description: profile.description?.trim() || null,
           type: profile.type || null,
@@ -213,88 +225,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         .single()
 
       if (error) {
-        // Extract error properties - access them directly since they exist as keys
-        // Try direct property access first (they might be non-enumerable)
-        const directMessage = (error as any)?.message
-        const directCode = (error as any)?.code
-        const directDetails = (error as any)?.details
-        const directHint = (error as any)?.hint
-        
-        // Fallback values
-        const errorMessage = directMessage || String(error) || 'Unknown error'
-        const errorCode = directCode || null
-        const errorDetails = directDetails || null
-        const errorHint = directHint || null
-        
-        // Use final variables for consistency
-        const finalMessage = errorMessage
-        const finalCode = errorCode
-        const finalDetails = errorDetails
-        const finalHint = errorHint
-        
-        // Log the actual values
-        console.error('Raw Supabase error object:', error)
-        console.error('Direct property access - message:', directMessage)
-        console.error('Direct property access - code:', directCode)
-        console.error('Direct property access - details:', directDetails)
-        console.error('Direct property access - hint:', directHint)
-        console.error('Final error message:', finalMessage)
-        console.error('Final error code:', finalCode)
-        console.error('Error keys:', error ? Object.keys(error) : 'no keys')
-        
-        const errorInfo = {
-          message: finalMessage,
-          code: finalCode,
-          details: finalDetails,
-          hint: finalHint,
-          errorString: String(error),
-          errorJSON: JSON.stringify(error, Object.getOwnPropertyNames(error)),
-        }
-        console.error('Supabase insert error creating profile:', errorInfo)
-        
-        // Only throw duplicate error if we're CERTAIN it's a duplicate
-        // PostgreSQL error code 23505 = unique_violation
-        const isDuplicate = finalCode === '23505' || 
-            (finalMessage && typeof finalMessage === 'string' && (
-              finalMessage.includes('duplicate key') || 
-              finalMessage.includes('unique constraint') ||
-              finalMessage.includes('profiles_user_id_name_unique') ||
-              finalMessage.toLowerCase().includes('duplicate')
-            ))
-        
-        if (isDuplicate) {
-          console.error('Duplicate detected - errorCode:', finalCode, 'errorMessage:', finalMessage)
-          
-          // Check if it's the wrong constraint (user_id only) vs correct constraint (user_id + name)
-          if (finalMessage && finalMessage.includes('profiles_user_id_key')) {
-            // This is the wrong constraint - user should be able to create multiple profiles
-            throw new Error('Database configuration error: Only one profile per user is allowed. Please contact support or run the migration to fix this issue.')
-          }
-          
-          // Correct duplicate error (same name for same user)
-          throw new Error('A profile with this name already exists. Please choose a different name.')
-        }
-        
-        // Check for missing table/columns
-        if (finalMessage && finalMessage.includes('column') && (finalMessage.includes('does not exist') || finalMessage.includes('schema cache'))) {
-          throw new Error('Database schema error: Profiles table is missing or incomplete. Please run the migration SQL in Supabase dashboard (see FIX_PROFILES_TABLE.sql file).')
-        }
-        
-        // Check for trigger errors (dashboard/features creation) - these are non-fatal
-        // If profile was actually created despite trigger error, return it
-        if (newProfile && finalMessage && (finalMessage.includes('trigger') || finalMessage.includes('profile_dashboards') || finalMessage.includes('profile_features'))) {
-          console.warn('Profile created but dashboard/features creation may have failed. This is non-critical.')
-          // Profile was created, but dashboard/features failed - this is OK, they'll be created on first load
-          await loadProfiles()
-          return newProfile
-        }
-        
-        // Generic error - use the most descriptive message available
-        const errorMsg = finalMessage !== 'Unknown error' 
-          ? finalMessage 
-          : (finalDetails || finalHint || 'Failed to create profile. Please check the console for details and try again.')
-        throw new Error(errorMsg)
+        console.error('Supabase insert error creating profile:', error)
+        throw new Error(error.message || 'Failed to create profile')
       }
+      
       if (!newProfile) throw new Error('Failed to create profile')
 
       await loadProfiles()
@@ -342,7 +276,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         if (defaultProfile) {
           await setActiveProfile(defaultProfile.id)
         } else {
-          // No default profile, load profiles again
           await loadProfiles()
         }
       } else {
