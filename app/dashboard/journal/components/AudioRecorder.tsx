@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Mic, Square, Loader2, CheckCircle, X, Sparkles } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Mic, Square, Loader2, CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 
 interface AudioRecorderProps {
   tradeId?: string
   onComplete?: (summary: string) => void
 }
+
+type PermissionStatus = 'prompt' | 'granted' | 'denied' | 'unknown'
 
 export function AudioRecorder({ tradeId, onComplete }: AudioRecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
@@ -20,18 +22,126 @@ export function AudioRecorder({ tradeId, onComplete }: AudioRecorderProps) {
   const [aiSummary, setAiSummary] = useState<string>('')
   const [autoTags, setAutoTags] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>('unknown')
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<number>(0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const supabase = createClient()
 
-  const startRecording = async () => {
+  // Check permission status on mount
+  useEffect(() => {
+    checkPermissionStatus()
+  }, [])
+
+  const checkPermissionStatus = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      // Check if permissions API is available
+      if (navigator.permissions && navigator.permissions.query) {
+        const result = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+        setPermissionStatus(result.state as PermissionStatus)
+        
+        // Listen for permission changes
+        const handleChange = () => {
+          setPermissionStatus(result.state as PermissionStatus)
+          if (result.state === 'granted') {
+            setError(null) // Clear error when permission granted
+          }
+        }
+        
+        result.addEventListener('change', handleChange)
+        return () => result.removeEventListener('change', handleChange)
+      }
+    } catch (err) {
+      console.log('Permission query not supported, will check on request')
+      setPermissionStatus('unknown')
+    }
+  }, [])
+
+  const requestMicrophoneAccess = async (): Promise<MediaStream | null> => {
+    setError(null)
+
+    try {
+      // Check if mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support audio recording')
+      }
+
+      // Request microphone access with optimal settings
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      })
+
+      setPermissionStatus('granted')
+      return stream
+
+    } catch (err: any) {
+      console.error('Microphone access error:', err)
+
+      // Handle specific error types
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setPermissionStatus('denied')
+        setError('Microphone permission denied. Please click the lock/camera icon in your browser\'s address bar, allow microphone access, then click "Try Again" below.')
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setError('No microphone found. Please connect a microphone and try again.')
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setError('Microphone is being used by another application. Please close other apps using the microphone.')
+      } else if (err.name === 'OverconstrainedError') {
+        // Retry with basic settings
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          setPermissionStatus('granted')
+          return stream
+        } catch {
+          setError('Could not access microphone with any settings.')
+        }
+      } else if (err.name === 'SecurityError') {
+        setError('Microphone access blocked. Please ensure you\'re using HTTPS.')
+      } else {
+        setError(`Microphone error: ${err.message || 'Unknown error'}`)
+      }
+
+      return null
+    }
+  }
+
+  const startRecording = async () => {
+    setError(null)
+    
+    const stream = await requestMicrophoneAccess()
+    if (!stream) return
+
+    streamRef.current = stream
+    audioChunksRef.current = []
+
+    // Find supported MIME type
+    const mimeTypes = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+    ]
+    
+    let selectedMimeType = ''
+    for (const mimeType of mimeTypes) {
+      if (MediaRecorder.isTypeSupported(mimeType)) {
+        selectedMimeType = mimeType
+        break
+      }
+    }
+
+    try {
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: selectedMimeType || undefined,
+      })
       mediaRecorderRef.current = mediaRecorder
-      audioChunksRef.current = []
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -40,22 +150,34 @@ export function AudioRecorder({ tradeId, onComplete }: AudioRecorderProps) {
       }
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        setAudioBlob(audioBlob)
-        stream.getTracks().forEach(track => track.stop())
+        const blob = new Blob(audioChunksRef.current, { 
+          type: audioChunksRef.current[0]?.type || 'audio/webm' 
+        })
+        setAudioBlob(blob)
         
         // Stop timer
         if (intervalRef.current) {
           clearInterval(intervalRef.current)
         }
         
-        // AUTO-PROCESS immediately (no manual save button)
-        await processAndSaveAudio(audioBlob)
+        // Clean up stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop())
+          streamRef.current = null
+        }
+        
+        // AUTO-PROCESS immediately
+        await processAndSaveAudio(blob)
       }
 
-      mediaRecorder.start()
+      mediaRecorder.onerror = (event: any) => {
+        console.error('MediaRecorder error:', event.error)
+        setError('Recording error occurred')
+        setIsRecording(false)
+      }
+
+      mediaRecorder.start(1000) // Collect data every second
       setIsRecording(true)
-      setError(null)
       
       // Start timer
       timerRef.current = 0
@@ -63,9 +185,11 @@ export function AudioRecorder({ tradeId, onComplete }: AudioRecorderProps) {
         timerRef.current += 1
         setDuration(timerRef.current)
       }, 1000)
+
     } catch (err: any) {
-      setError('Microphone access denied. Please enable microphone permissions.')
-      console.error('Error starting recording:', err)
+      console.error('MediaRecorder creation error:', err)
+      setError('Failed to start recording')
+      stream.getTracks().forEach(track => track.stop())
     }
   }
 
@@ -144,7 +268,7 @@ export function AudioRecorder({ tradeId, onComplete }: AudioRecorderProps) {
 
       // Step 3: AI Analysis (auto-tags, goals, mistakes)
       setProcessingStage('Analyzing with AI...')
-      let analysisResponse: Response
+      let analysisResponse: Response | null = null
       try {
         analysisResponse = await fetch('/api/audio-journal/analyze', {
           method: 'POST',
@@ -156,8 +280,6 @@ export function AudioRecorder({ tradeId, onComplete }: AudioRecorderProps) {
         })
       } catch (fetchError: any) {
         console.warn('AI analysis failed, continuing without it:', fetchError)
-        // Continue without analysis if it fails
-        analysisResponse = null as any
       }
 
       let analysisData: any = {}
@@ -224,6 +346,13 @@ export function AudioRecorder({ tradeId, onComplete }: AudioRecorderProps) {
     setIsComplete(false)
     setDuration(0)
     setProcessingStage('')
+  }
+
+  const retryPermission = async () => {
+    setError(null)
+    setPermissionStatus('unknown')
+    await checkPermissionStatus()
+    await startRecording()
   }
 
   if (isComplete) {
@@ -298,10 +427,18 @@ export function AudioRecorder({ tradeId, onComplete }: AudioRecorderProps) {
             </div>
           </div>
         )}
+
+        {/* Permission Status Indicator */}
+        {permissionStatus === 'granted' && !error && !isRecording && !isProcessing && (
+          <span className="inline-flex items-center gap-1 text-emerald-400 text-sm">
+            <CheckCircle className="w-4 h-4" />
+            Microphone ready
+          </span>
+        )}
       </div>
 
       {/* Info */}
-      {!isRecording && !isProcessing && !isComplete && (
+      {!isRecording && !isProcessing && !isComplete && !error && (
         <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
           <div className="flex items-start gap-2">
             <Sparkles className="w-4 h-4 text-purple-400 mt-0.5" />
@@ -319,9 +456,42 @@ export function AudioRecorder({ tradeId, onComplete }: AudioRecorderProps) {
         </div>
       )}
 
+      {/* Error Message with Retry */}
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <p className="text-sm text-red-400">{error}</p>
+        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-red-400 text-sm font-medium mb-2">{error}</p>
+              {permissionStatus === 'denied' && (
+                <div className="space-y-3">
+                  <div className="text-xs text-gray-400 space-y-1">
+                    <p className="font-medium text-gray-300">To fix this:</p>
+                    <ol className="list-decimal list-inside space-y-1 pl-1">
+                      <li>Click the <strong>lock icon</strong> (🔒) in your browser's address bar</li>
+                      <li>Find <strong>"Microphone"</strong> in the permissions list</li>
+                      <li>Change it from "Block" to <strong>"Allow"</strong></li>
+                      <li>Click the button below to try again</li>
+                    </ol>
+                  </div>
+                  <button
+                    onClick={retryPermission}
+                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    🔄 Try Again
+                  </button>
+                </div>
+              )}
+              {permissionStatus !== 'denied' && (
+                <button
+                  onClick={() => { setError(null); startRecording(); }}
+                  className="mt-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors"
+                >
+                  Try Again
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

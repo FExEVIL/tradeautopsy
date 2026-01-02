@@ -142,17 +142,6 @@ export function DataPrivacySettings() {
           <p className="text-xs text-gray-500">Permanently delete all your trading history. This action cannot be undone.</p>
         </div>
 
-        {/* Account Deletion */}
-        <div className="space-y-3 pt-4 border-t border-red-600/30">
-          <label className="text-sm font-medium text-red-400">Delete Account</label>
-          <button
-            onClick={() => alert('Account deletion feature coming soon')}
-            className="px-4 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-600/50 text-sm text-red-400 transition-colors"
-          >
-            Delete Account
-          </button>
-          <p className="text-xs text-gray-500">Permanently delete your account and all associated data</p>
-        </div>
       </div>
     </div>
   )

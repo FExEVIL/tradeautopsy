@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { OrganizationStructuredData, ProductStructuredData } from '@/components/SEO/StructuredData'
 import { Logo } from '@/components/ui/Logo'
+import { CookieSettingsLink } from '@/components/ui/CookieSettingsLink'
 
 export default function HomePage() {
   const [scrolled, setScrolled] = useState(false)
@@ -427,7 +428,13 @@ export default function HomePage() {
               <span>•</span>
               <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
               <span>•</span>
-              <Link href="/support" className="hover:text-white transition-colors">Support</Link>
+              <Link href="/help" className="hover:text-white transition-colors">Help</Link>
+              <span>•</span>
+              <Link href="/changelog" className="hover:text-white transition-colors">Changelog</Link>
+              <span>•</span>
+              <CookieSettingsLink />
+              <span>•</span>
+              <CookieSettingsLink />
             </div>
 
             <div className="flex items-center gap-4">

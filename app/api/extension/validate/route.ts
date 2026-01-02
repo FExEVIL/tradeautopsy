@@ -1,59 +1,58 @@
-import { createClient } from '@/utils/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { validateTradeAgainstRules } from '@/lib/rule-engine'
+import { createClient } from '@/utils/supabase/server'
 
-/**
- * Browser Extension API - Validate Prospective Trade
- * Validates a trade against user's rules before execution
- */
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { valid: false, error: 'No token provided' },
+        { status: 401 }
+      )
     }
 
-    const tradeData = await request.json()
-
-    // Validate trade against rules
-    const validation = await validateTradeAgainstRules(user.id, {
-      tradingsymbol: tradeData.symbol,
-      transaction_type: tradeData.side || tradeData.transaction_type,
-      quantity: tradeData.quantity,
-      average_price: tradeData.price,
-      trade_date: tradeData.timestamp || new Date().toISOString()
-    })
-
-    // Format response for extension
-    const violations = validation.violations.map(v => ({
-      ruleId: v.rule.id,
-      ruleTitle: v.rule.title,
-      message: v.message,
-      severity: v.rule.severity,
-      details: v.details
-    }))
-
-    const warnings = violations.filter(v => v.severity === 'warning')
-    const blocking = violations.filter(v => v.severity === 'blocking')
+    const token = authHeader.substring(7)
+    const supabase = await createClient()
+    
+    // First try session auth
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user) {
+      return NextResponse.json({
+        valid: true,
+        user: {
+          id: user.id,
+          email: user.email,
+        }
+      })
+    }
+    
+    // Check extension token
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('user_id, display_name, email')
+      .eq('extension_token', token)
+      .single()
+    
+    if (error || !profile) {
+      return NextResponse.json(
+        { valid: false, error: 'Invalid token' },
+        { status: 401 }
+      )
+    }
 
     return NextResponse.json({
-      allowed: validation.allowed,
-      violations: {
-        blocking,
-        warnings
-      },
-      message: blocking.length > 0
-        ? `Trade blocked: ${blocking[0].message}`
-        : warnings.length > 0
-        ? `Warning: ${warnings[0].message}`
-        : 'Trade allowed'
+      valid: true,
+      user: {
+        id: profile.user_id,
+        email: profile.email,
+        name: profile.display_name,
+      }
     })
   } catch (error: any) {
-    console.error('Extension validate error:', error)
+    console.error('[Extension Validate] Error:', error)
     return NextResponse.json(
-      { error: 'Failed to validate trade', details: error.message },
+      { valid: false, error: 'Validation failed' },
       { status: 500 }
     )
   }

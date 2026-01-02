@@ -51,7 +51,7 @@ const DayCell = memo(function DayCell({
       onClick={handleClick}
       disabled={!hasTrades}
       className={`aspect-square rounded-lg ${colorClass} hover:ring-2 hover:ring-white/30 transition-all flex flex-col items-center justify-center p-2 relative group cursor-pointer disabled:cursor-not-allowed disabled:opacity-50`}
-      style={{ contain: 'layout style paint' }} // ✅ CSS containment
+      style={{ contain: 'layout style paint' }}
     >
       <span className="text-xs text-white font-medium">{day}</span>
       {hasTrades && (
@@ -65,10 +65,13 @@ const DayCell = memo(function DayCell({
   )
 })
 
-export default function CalendarClient({ dailyData = {} }: Props) {
+export default function CalendarClient({ dailyData: initialDailyData = {} }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
+  const [dailyData, setDailyData] = useState<{ [date: string]: DayData }>(initialDailyData)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   
   // Get month/year from URL or default to current
   const urlMonth = searchParams.get('month')
@@ -85,6 +88,54 @@ export default function CalendarClient({ dailyData = {} }: Props) {
   // Memoize month/year to prevent unnecessary recalculations
   const month = useMemo(() => currentMonth.getMonth(), [currentMonth])
   const year = useMemo(() => currentMonth.getFullYear(), [currentMonth])
+
+  // Fetch calendar data when month changes
+  useEffect(() => {
+    const fetchMonthData = async () => {
+      // Check if we already have data for this month
+      const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`
+      const hasDataForMonth = Object.keys(dailyData).some(date => date.startsWith(monthKey))
+      
+      // If we have initial data for current month, don't fetch again
+      const isCurrentMonth = new Date().getMonth() === month && new Date().getFullYear() === year
+      if (hasDataForMonth && isCurrentMonth && Object.keys(initialDailyData).length > 0) {
+        return
+      }
+
+      // Fetch data for the month
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const startDate = new Date(year, month, 1).toISOString().split('T')[0]
+        const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
+
+        const response = await fetch(
+          `/api/trades/calendar?start_date=${startDate}&end_date=${endDate}`
+        )
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch calendar data')
+        }
+
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          // Merge with existing data
+          setDailyData(prev => ({ ...prev, ...result.data }))
+        } else {
+          throw new Error(result.error || 'Failed to load calendar')
+        }
+      } catch (err: any) {
+        console.error('Calendar fetch error:', err)
+        setError(err.message)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchMonthData()
+  }, [year, month]) // Only depend on year and month
 
   // Update URL when month changes (debounced)
   useEffect(() => {
@@ -113,6 +164,12 @@ export default function CalendarClient({ dailyData = {} }: Props) {
     })
   }, [startTransition])
 
+  const goToToday = useCallback(() => {
+    startTransition(() => {
+      setCurrentMonth(new Date())
+    })
+  }, [startTransition])
+
   // Memoize calendar grid generation
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1).getDay()
@@ -126,12 +183,11 @@ export default function CalendarClient({ dailyData = {} }: Props) {
     return days
   }, [year, month])
 
-
   // Memoize monthly stats calculation
   const monthStats = useMemo(() => {
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`
     const monthDays = Object.entries(dailyData || {}).filter(([date]) => date.startsWith(monthKey))
-    const monthPnL = monthDays.reduce((sum, [_, data]) => sum + data.pnl, 0)
+    const monthPnL = monthDays.reduce((sum, [_, data]) => sum + (data.pnl || 0), 0)
     const winDays = monthDays.filter(([_, data]) => data.pnl > 0).length
     const loseDays = monthDays.filter(([_, data]) => data.pnl < 0).length
     const winRate = monthDays.length > 0 ? (winDays / monthDays.length) * 100 : 0
@@ -154,7 +210,7 @@ export default function CalendarClient({ dailyData = {} }: Props) {
   return (
     <div className="space-y-8">
       {/* Monthly Stats */}
-      <div className="grid-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-5 rounded-xl bg-[#0A0A0A] border border-white/5 hover:border-white/10 transition-all">
           <div className="flex justify-between items-start mb-2">
             <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Monthly P&L</span>
@@ -190,7 +246,7 @@ export default function CalendarClient({ dailyData = {} }: Props) {
           <div className="flex items-center gap-4">
             <button
               onClick={prevMonth}
-              disabled={isPending}
+              disabled={isPending || isLoading}
               className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
               aria-label="Previous month"
             >
@@ -201,11 +257,17 @@ export default function CalendarClient({ dailyData = {} }: Props) {
             </span>
             <button
               onClick={nextMonth}
-              disabled={isPending}
+              disabled={isPending || isLoading}
               className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
               aria-label="Next month"
             >
               <ChevronRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={goToToday}
+              className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            >
+              Today
             </button>
           </div>
         </div>
@@ -218,9 +280,28 @@ export default function CalendarClient({ dailyData = {} }: Props) {
         </div>
 
         {/* Calendar Grid */}
-        {isPending ? (
+        {(isPending || isLoading) ? (
           <div className="text-center py-20 text-gray-400">
             <div className="inline-block w-8 h-8 border-4 border-gray-600 border-t-white rounded-full animate-spin" />
+            <p className="mt-4 text-sm">Loading calendar data...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-20">
+            <p className="text-red-400 mb-4">{error}</p>
+            <button
+              onClick={() => {
+                const startDate = new Date(year, month, 1).toISOString().split('T')[0]
+                const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
+                fetch(`/api/trades/calendar?start_date=${startDate}&end_date=${endDate}`)
+                  .then(r => r.json())
+                  .then(d => {
+                    if (d.success) setDailyData(prev => ({ ...prev, ...d.data }))
+                  })
+              }}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg"
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-7 gap-2 calendar-grid" style={{ contain: 'layout' }}>

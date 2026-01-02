@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - TradeAutopsy</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="settings-styles.css">
+</head>
+<body>
+  <div class="settings-header">
+    <button id="back-btn" class="back-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+    <h1>Settings</h1>
+  </div>
+  
+  <div class="settings-content">
+    <!-- API Token Section -->
+    <div class="settings-section">
+      <div class="settings-section-title">Connection</div>
+      <div class="token-section">
+        <div class="token-input-group">
+          <input type="password" id="tokenInput" class="token-input" placeholder="Enter your API token">
+          <button id="save-token-btn" class="token-btn">Save</button>
+        </div>
+        <div class="token-status" id="tokenStatus">
+          <span class="token-status-dot"></span>
+          <span>Not connected</span>
+        </div>
+        <div class="token-help">
+          <a id="get-token-link" href="#">
+            Get your API token from TradeAutopsy →
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Notifications Section -->
+    <div class="settings-section">
+      <div class="settings-section-title">Notifications</div>
+      <div class="settings-group">
+        <div class="settings-item">
+          <div class="settings-item-label">
+            <span>Enable Notifications</span>
+            <small>Get alerts for rule violations</small>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notificationsEnabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-item">
+          <div class="settings-item-label">
+            <span>Rule Violation Alerts</span>
+            <small>Alert when you break a rule</small>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="violationAlerts" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-item">
+          <div class="settings-item-label">
+            <span>Goal Achieved Alerts</span>
+            <small>Celebrate when you hit goals</small>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="goalAlerts" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Refresh Section -->
+    <div class="settings-section">
+      <div class="settings-section-title">Data Refresh</div>
+      <div class="settings-group">
+        <div class="settings-item">
+          <div class="settings-item-label">
+            <span>Refresh Interval</span>
+            <small>How often to check for updates</small>
+          </div>
+          <select class="settings-select" id="refreshInterval">
+            <option value="30">30 seconds</option>
+            <option value="60" selected>1 minute</option>
+            <option value="120">2 minutes</option>
+            <option value="300">5 minutes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Logout Button -->
+    <div class="settings-section">
+      <button id="logout-btn" class="token-btn danger full-width">
+        Disconnect Account
+      </button>
+    </div>
+    
+    <!-- About -->
+    <div class="about-section">
+      <div class="version">TradeAutopsy Extension v1.0.0</div>
+      <a id="visit-link" href="#">Visit TradeAutopsy</a>
+      •
+      <a id="help-link" href="#">Help</a>
+      •
+      <a id="privacy-link" href="#">Privacy</a>
+    </div>
+  </div>
+
+  <!-- Load external JavaScript file - NO INLINE SCRIPTS -->
+  <script src="settings.js"></script>
+</body>
+</html>

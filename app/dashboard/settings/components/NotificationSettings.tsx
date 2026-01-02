@@ -3,6 +3,7 @@
 import { useSettings } from '../SettingsClient'
 import { Bell, Mail, Smartphone, Clock } from 'lucide-react'
 import { useState } from 'react'
+import Link from 'next/link'
 
 export function NotificationSettings() {
   const { preferences, updatePreferences, isSaving } = useSettings()
@@ -33,7 +34,15 @@ export function NotificationSettings() {
           <div className="flex items-center gap-3">
             <Mail className="w-5 h-5 text-gray-400" />
             <div>
-              <label className="text-sm font-medium text-gray-300">Email Notifications</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-300">Email Notifications</label>
+                <Link 
+                  href="/dashboard/settings/notifications"
+                  className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  Manage preferences →
+                </Link>
+              </div>
               <p className="text-xs text-gray-500">Receive email alerts for important events</p>
             </div>
           </div>

@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "TradeAutopsy - Trading Rules & Goals Tracker",
+  "version": "1.0.0",
+  "description": "Track your trading rules, goals & P&L in real-time. Get alerts before you break your rules.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://tradeautopsy.in/*",
+    "https://www.tradeautopsy.in/*",
+    "https://*.tradeautopsy.in/*",
+    "http://localhost:3000/*"
+  ],
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    },
+    "default_title": "TradeAutopsy"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "icons": {
+    "16": "assets/icon-16.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

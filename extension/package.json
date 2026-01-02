@@ -1,0 +1,19 @@
+{
+  "name": "tradeautopsy-extension",
+  "version": "1.0.0",
+  "description": "TradeAutopsy Chrome Extension - Real-time trading rules and goals tracker",
+  "scripts": {
+    "generate:icons": "node scripts/generate-icons.js",
+    "generate:promo": "node scripts/generate-promo-images.js",
+    "verify": "node scripts/verify.js",
+    "build": "npm run generate:icons && node scripts/package.js",
+    "package": "node scripts/package.js"
+  },
+  "dependencies": {
+    "sharp": "^0.33.2",
+    "archiver": "^6.0.1"
+  },
+  "devDependencies": {
+    "puppeteer": "^21.6.1"
+  }
+}

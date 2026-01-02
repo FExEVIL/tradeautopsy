@@ -2,6 +2,9 @@ import { CollapsibleSidebar } from './components/CollapsibleSidebar'
 import { DashboardHeader } from './components/DashboardHeader'
 import { ProfileProvider } from '@/lib/contexts/ProfileContext'
 import { ProfileDashboardProvider } from '@/lib/contexts/ProfileDashboardContext'
+import { UserProvider } from '@/lib/contexts/UserContext'
+import { OnboardingWrapper } from './components/OnboardingWrapper'
+import { ClientWidgets } from './components/ClientWidgets'
 import { Suspense } from 'react'
 
 export default function DashboardLayout({
@@ -10,8 +13,11 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <ProfileProvider>
-      <ProfileDashboardProvider>
+    <UserProvider>
+      <ProfileProvider>
+        <ProfileDashboardProvider>
+        <OnboardingWrapper />
+        <ClientWidgets />
         <div className="flex h-screen bg-black overflow-hidden">
           <CollapsibleSidebar />
           <div className="flex-1 flex flex-col overflow-hidden transition-all duration-200" style={{ transform: 'translateZ(0)' }}>
@@ -30,7 +36,8 @@ export default function DashboardLayout({
             </main>
           </div>
         </div>
-      </ProfileDashboardProvider>
-    </ProfileProvider>
+        </ProfileDashboardProvider>
+      </ProfileProvider>
+    </UserProvider>
   )
 }

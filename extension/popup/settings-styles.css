@@ -1,0 +1,282 @@
+/* Settings page specific styles */
+
+body {
+  width: 360px;
+  min-height: 480px;
+}
+
+.settings-header {
+  background: #0a0a0a;
+  padding: 16px 20px;
+  border-bottom: 1px solid #262626;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-btn:hover {
+  color: #ffffff;
+}
+
+.back-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-header h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.settings-content {
+  padding: 20px;
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.settings-group {
+  background: #1a1a1a;
+  border: 1px solid #262626;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #262626;
+}
+
+.settings-item:last-child {
+  border-bottom: none;
+}
+
+.settings-item-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-item-label span {
+  font-size: 14px;
+  color: #e5e7eb;
+}
+
+.settings-item-label small {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggle input:checked + .toggle-slider {
+  background-color: #10b981;
+}
+
+.toggle input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Select dropdown */
+.settings-select {
+  background: #262626;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #e5e7eb;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: #10b981;
+}
+
+/* Token input */
+.token-section {
+  background: #1a1a1a;
+  border: 1px solid #262626;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.token-input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.token-input {
+  flex: 1;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #e5e7eb;
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.token-input:focus {
+  outline: none;
+  border-color: #10b981;
+}
+
+.token-btn {
+  background: #10b981;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.token-btn:hover {
+  background: #059669;
+}
+
+.token-btn.secondary {
+  background: #262626;
+}
+
+.token-btn.secondary:hover {
+  background: #333;
+}
+
+.token-btn.danger {
+  background: #ef4444;
+}
+
+.token-btn.danger:hover {
+  background: #dc2626;
+}
+
+.token-btn.full-width {
+  width: 100%;
+}
+
+.token-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.token-status.connected {
+  color: #10b981;
+}
+
+.token-status.disconnected {
+  color: #ef4444;
+}
+
+.token-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.token-help {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #262626;
+}
+
+.token-help a {
+  color: #10b981;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.token-help a:hover {
+  text-decoration: underline;
+}
+
+/* About section */
+.about-section {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.about-section .version {
+  margin-bottom: 8px;
+  color: #9ca3af;
+}
+
+.about-section a {
+  color: #10b981;
+  text-decoration: none;
+}
+
+.about-section a:hover {
+  text-decoration: underline;
+}
+

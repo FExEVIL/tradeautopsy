@@ -1,7 +1,8 @@
 'use client'
 
 import { useSettings } from '../SettingsClient'
-import { CreditCard, Receipt, TrendingUp, Crown } from 'lucide-react'
+import { CreditCard, Receipt, TrendingUp, Crown, LogOut } from 'lucide-react'
+import { LogoutButton } from '@/components/ui/LogoutButton'
 
 export function AccountBillingSettings() {
   const { preferences, stats } = useSettings()
@@ -79,6 +80,20 @@ export function AccountBillingSettings() {
           </div>
           <div className="p-4 rounded-lg bg-gray-900 border border-gray-800">
             <p className="text-sm text-gray-400">No invoices yet</p>
+          </div>
+        </div>
+
+        {/* Account Actions */}
+        <div className="space-y-3 pt-4 border-t border-gray-800">
+          <div className="flex items-center gap-2">
+            <LogOut className="w-4 h-4 text-gray-400" />
+            <label className="text-sm font-medium text-gray-300">Session</label>
+          </div>
+          <div className="p-4 rounded-lg bg-gray-900 border border-gray-800 space-y-3">
+            <p className="text-sm text-gray-400">
+              Sign out of your account on this device. You&apos;ll need to log in again to access your data.
+            </p>
+            <LogoutButton variant="danger" className="w-full" />
           </div>
         </div>
       </div>

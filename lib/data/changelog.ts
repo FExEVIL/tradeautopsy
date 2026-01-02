@@ -1,0 +1,276 @@
+export type ChangelogType = 'new' | 'improved' | 'fixed' | 'breaking'
+
+export interface ChangelogEntry {
+  id: string
+  date: string
+  version?: string
+  title: string
+  type: ChangelogType
+  description: string
+  items?: string[]
+  image?: string
+  link?: string
+}
+
+export const changelogData: ChangelogEntry[] = [
+  {
+    id: '1',
+    date: '2025-01-03',
+    version: '1.0.0',
+    title: 'Public Launch 🚀',
+    type: 'new',
+    description: 'TradeAutopsy is now live! We\'re excited to help you improve your trading performance.',
+    items: [
+      'Complete onboarding flow for new users',
+      'AI-powered trading insights and behavioral analysis',
+      'Multi-broker support (Zerodha, CSV import, manual entry)',
+      'Daily Trade Plan with market overview and EOD review',
+      'Global search (⌘+K) across trades, journal, goals, and plans',
+      'Pre-market checklist with streak tracking',
+      'Watchlist management',
+      'Comprehensive analytics and performance tracking',
+      'Trading rules engine',
+      'Goal tracking and milestones',
+      'Audio journal entries',
+      'Privacy policy and terms of service',
+      'GDPR-compliant cookie consent',
+    ],
+  },
+  {
+    id: '2',
+    date: '2025-01-03',
+    version: '1.0.1',
+    title: 'Daily Trade Plan Feature',
+    type: 'new',
+    description: 'Plan your trading day with market overview, key levels, and end-of-day review.',
+    items: [
+      'Market sentiment tracking',
+      'Support and resistance levels',
+      'Key symbols watchlist',
+      'Risk parameters (max loss, max trades, position size)',
+      'Focus areas for the day',
+      'EOD review with execution score',
+      'Lessons learned and tomorrow\'s focus',
+    ],
+  },
+  {
+    id: '3',
+    date: '2025-01-03',
+    version: '1.0.1',
+    title: 'Global Search & Command Palette',
+    type: 'new',
+    description: 'Quickly find anything in your trading journal with ⌘+K.',
+    items: [
+      'Search across trades, journal entries, goals, and plans',
+      'Keyboard navigation (arrow keys, Enter)',
+      'Real-time search results',
+      'Fuzzy matching',
+      'Quick navigation to any page',
+    ],
+  },
+  {
+    id: '4',
+    date: '2024-12-31',
+    version: '0.9.0',
+    title: 'Onboarding & Sample Data',
+    type: 'new',
+    description: 'New users can now explore TradeAutopsy with sample data.',
+    items: [
+      '5-step onboarding flow',
+      'Welcome screen with value props',
+      'Import choice (Zerodha, CSV, Manual, Sample Data)',
+      'Quick tour of key features',
+      'Goal setting step',
+      '50 realistic sample trades',
+      'Sample data banner indicator',
+    ],
+  },
+  {
+    id: '5',
+    date: '2024-12-31',
+    version: '0.9.0',
+    title: 'Empty States & UX Improvements',
+    type: 'improved',
+    description: 'Better user experience when there\'s no data.',
+    items: [
+      'Reusable EmptyState component',
+      'Empty states for all major pages',
+      'Progress indicators',
+      'Clear call-to-action buttons',
+      'Helpful guidance for new users',
+    ],
+  },
+  {
+    id: '6',
+    date: '2024-12-31',
+    version: '0.9.0',
+    title: 'Pre-Market Checklist',
+    type: 'new',
+    description: 'Stay disciplined with a daily pre-market checklist.',
+    items: [
+      'Customizable checklist items',
+      'Checklist templates',
+      'Streak tracking',
+      'History view',
+      'Gamification badges',
+    ],
+  },
+  {
+    id: '7',
+    date: '2024-12-31',
+    version: '0.9.0',
+    title: 'Watchlist Management',
+    type: 'new',
+    description: 'Track your favorite symbols and key levels.',
+    items: [
+      'Multiple watchlists',
+      'Add symbols with notes',
+      'Support/resistance levels',
+      'Quick add trade from watchlist',
+      'Group by categories',
+    ],
+  },
+  {
+    id: '8',
+    date: '2024-12-20',
+    version: '0.8.0',
+    title: 'Performance Optimizations',
+    type: 'improved',
+    description: 'Faster load times and better performance.',
+    items: [
+      'Dynamic imports for heavy components',
+      'Database query optimizations',
+      'Reduced initial bundle size',
+      'Improved FCP/LCP scores',
+      'Better caching strategies',
+    ],
+  },
+  {
+    id: '9',
+    date: '2024-12-15',
+    version: '0.7.0',
+    title: 'Audio Journal Entries',
+    type: 'new',
+    description: 'Record your thoughts with voice notes.',
+    items: [
+      'Voice recording',
+      'Speech-to-text transcription',
+      'AI-generated summaries',
+      'Audio playback',
+      'Link to trades',
+    ],
+  },
+  {
+    id: '10',
+    date: '2024-12-10',
+    version: '0.6.0',
+    title: 'Trading Rules Engine',
+    type: 'new',
+    description: 'Enforce discipline with automated rule checking.',
+    items: [
+      'Create custom trading rules',
+      'Automatic violation detection',
+      'Rule alerts and notifications',
+      'Rule adherence tracking',
+      'Rule templates',
+    ],
+  },
+  {
+    id: '11',
+    date: '2024-12-05',
+    version: '0.5.0',
+    title: 'AI Coach & Insights',
+    type: 'new',
+    description: 'Get AI-powered insights about your trading patterns.',
+    items: [
+      'Behavioral pattern detection',
+      'AI-generated insights',
+      'Emotional state tracking',
+      'Predictive alerts',
+      'Action plan recommendations',
+    ],
+  },
+  {
+    id: '12',
+    date: '2024-11-30',
+    version: '0.4.0',
+    title: 'Multi-Profile Support',
+    type: 'new',
+    description: 'Manage multiple trading profiles.',
+    items: [
+      'Create multiple profiles',
+      'Profile-specific dashboards',
+      'Profile switching',
+      'Profile templates',
+      'Separate analytics per profile',
+    ],
+  },
+  {
+    id: '13',
+    date: '2024-11-25',
+    version: '0.3.0',
+    title: 'CSV Import Improvements',
+    type: 'improved',
+    description: 'Better CSV import with broker presets.',
+    items: [
+      'Broker-specific templates',
+      'Auto-detection of columns',
+      'Validation and error handling',
+      'Bulk import support',
+      'Import history',
+    ],
+  },
+  {
+    id: '14',
+    date: '2024-11-20',
+    version: '0.2.0',
+    title: 'Dashboard Analytics',
+    type: 'new',
+    description: 'Comprehensive analytics and visualizations.',
+    items: [
+      'Cumulative P&L chart',
+      'Equity curve',
+      'Win rate by time of day',
+      'Strategy performance',
+      'Risk metrics (Sharpe ratio, max drawdown)',
+    ],
+  },
+  {
+    id: '15',
+    date: '2024-11-15',
+    version: '0.1.0',
+    title: 'Initial Release',
+    type: 'new',
+    description: 'First version of TradeAutopsy.',
+    items: [
+      'Trade import and management',
+      'Basic journal entries',
+      'Simple analytics',
+      'User authentication',
+    ],
+  },
+]
+
+export const changelogCategories: Record<ChangelogType, { label: string; color: string; icon: string }> = {
+  new: {
+    label: 'New',
+    color: 'text-emerald-400 bg-emerald-400/20 border-emerald-400/30',
+    icon: '✨',
+  },
+  improved: {
+    label: 'Improved',
+    color: 'text-blue-400 bg-blue-400/20 border-blue-400/30',
+    icon: '🚀',
+  },
+  fixed: {
+    label: 'Fixed',
+    color: 'text-yellow-400 bg-yellow-400/20 border-yellow-400/30',
+    icon: '🔧',
+  },
+  breaking: {
+    label: 'Breaking',
+    color: 'text-red-400 bg-red-400/20 border-red-400/30',
+    icon: '⚠️',
+  },
+}
+

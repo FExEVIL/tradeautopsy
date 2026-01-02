@@ -30,8 +30,12 @@ import {
   TestTube,
   Lightbulb,
   GraduationCap,
+  CheckSquare,
+  LogOut,
+  Loader2,
 } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
+import { useLogout } from '@/lib/hooks/useLogout'
 
 type BaseItem = {
   id: string
@@ -72,6 +76,7 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const { logout, isLoading: isLoggingOut } = useLogout()
 
   // Load from localStorage after component mounts (client-side only)
   useEffect(() => {
@@ -128,6 +133,8 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
     {
       title: 'MANAGE',
       items: [
+        { id: 'checklist', label: 'Pre-Market Checklist', href: '/dashboard/checklist', isLink: true, icon: CheckSquare },
+        { id: 'daily-plan', label: 'Daily Trade Plan', href: '/dashboard/daily-plan', isLink: true, icon: Target },
         { id: 'calendar', label: 'Calendar', href: '/dashboard/calendar', isLink: true, icon: Calendar },
         { id: 'journal', label: 'Journal', href: '/dashboard/journal', isLink: true, icon: BookOpen },
         { id: 'trades', label: 'All Trades', href: '/dashboard/trades', isLink: true, icon: List },
@@ -319,7 +326,7 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
       </div>
 
       {/* Import New Trades Button */}
-      <div className={`${isCollapsed ? 'px-3 pb-4' : 'p-4'} transition-opacity duration-200`}>
+      <div className={`${isCollapsed ? 'px-3 pb-2' : 'px-4 pb-2'} transition-opacity duration-200`}>
         <Link
           href="/dashboard/import"
           className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-border-subtle hover:bg-border-default text-text-secondary rounded-lg text-sm font-medium transition-colors border border-border-default ${isCollapsed ? 'px-3' : ''}`}
@@ -327,6 +334,23 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
           <Plus className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'}`} />
           {!isCollapsed && <span>Import New Trades</span>}
         </Link>
+      </div>
+
+      {/* Logout Button */}
+      <div className={`${isCollapsed ? 'px-3 pb-4' : 'px-4 pb-4'} transition-opacity duration-200`}>
+        <button
+          onClick={logout}
+          disabled={isLoggingOut}
+          className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 text-text-tertiary hover:text-red-400 hover:bg-red-500/10 rounded-lg text-sm font-medium transition-colors ${isCollapsed ? 'px-3' : ''} disabled:opacity-50`}
+          title={isCollapsed ? 'Log out' : undefined}
+        >
+          {isLoggingOut ? (
+            <Loader2 className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'} animate-spin`} />
+          ) : (
+            <LogOut className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'}`} />
+          )}
+          {!isCollapsed && <span>{isLoggingOut ? 'Logging out...' : 'Log out'}</span>}
+        </button>
       </div>
       </div>
     </div>

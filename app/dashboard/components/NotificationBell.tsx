@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Bell, X, Check } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Bell, Check } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
+import { useUser } from '@/lib/contexts/UserContext'
 
 interface Notification {
   id: string
@@ -21,39 +22,15 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const { user } = useUser()
 
-  useEffect(() => {
-    loadNotifications()
-    
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications'
-        },
-        () => {
-          loadNotifications()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
+  const loadNotifications = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false)
+      return
     }
-  }, [])
 
-  const loadNotifications = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setLoading(false)
-        return
-      }
-
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -82,7 +59,33 @@ export function NotificationBell() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id, supabase])
+
+  useEffect(() => {
+    loadNotifications()
+    
+    // Set up real-time subscription only if user is authenticated
+    if (!user?.id) return
+
+    const channel = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications'
+        },
+        () => {
+          loadNotifications()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id, loadNotifications, supabase])
 
   const markAsRead = async (notificationId: string) => {
     try {
@@ -103,10 +106,9 @@ export function NotificationBell() {
   }
 
   const markAllAsRead = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+    if (!user?.id) return
 
+    try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })

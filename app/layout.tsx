@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { ToastProvider } from './dashboard/components/Toast'
 import { ThemeProvider } from '@/components/ThemeProvider'
@@ -9,7 +8,8 @@ import { APP_URL } from '@/lib/constants'
 import { reportWebVitals } from '@/lib/vitals'
 import PerformanceMonitor from '@/components/PerformanceMonitor'
 import { OnboardingProvider } from '@/contexts/OnboardingContext'
-import OnboardingWidget from '@/components/OnboardingWidget'
+import { CookieConsent } from '@/components/ui/CookieConsent'
+import { AnalyticsLoader } from '@/components/AnalyticsLoader'
 
 // ✅ Export reportWebVitals for Next.js automatic integration
 export { reportWebVitals }
@@ -210,14 +210,7 @@ export default function RootLayout({
         {/* ✅ Preload critical assets */}
         <link rel="preload" href="/favicon.ico" as="image" />
         
-        {/* ✅ Preload font for LCP text (critical for LCP optimization) */}
-        <link
-          rel="preload"
-          href="/_next/static/media/inter-var.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
+        {/* Font is auto-handled by next/font - no manual preload needed */}
       </head>
       <body className={`${inter.variable} ${inter.className}`}>
         <ThemeProvider>
@@ -225,13 +218,15 @@ export default function RootLayout({
             <ToastProvider>
               {children}
               <KeyboardShortcuts />
-              <OnboardingWidget />
             </ToastProvider>
           </OnboardingProvider>
         </ThemeProvider>
         
-        {/* ✅ Vercel Speed Insights - automatically tracks all Web Vitals */}
-        <SpeedInsights />
+        {/* ✅ Cookie Consent Banner */}
+        <CookieConsent />
+        
+        {/* ✅ Analytics (only loads if consented) */}
+        <AnalyticsLoader />
         
         {/* ✅ Performance Monitor (development only) */}
         <PerformanceMonitor />

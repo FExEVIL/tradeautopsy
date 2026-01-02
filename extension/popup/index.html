@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeAutopsy</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="root">
+    <!-- Header -->
+    <header id="header" class="header">
+      <div class="header-top">
+        <div class="header-logo">
+          <div class="header-logo-icon">T</div>
+          <h1>TradeAutopsy</h1>
+        </div>
+        <div class="header-actions">
+          <button id="refresh-btn" class="header-btn" title="Refresh">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+          <button id="settings-btn" class="header-btn" title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="status-badge" class="status">
+        <span id="status-dot" class="status-dot green"></span>
+        <span id="status-text">All Good</span>
+      </div>
+    </header>
+
+    <!-- Loading State -->
+    <div id="loading-state" class="loading">
+      <div class="spinner"></div>
+      <p>Loading your data...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="error hidden">
+      <div class="error-icon">⚠️</div>
+      <div id="error-message" class="error-message">Failed to load data</div>
+      <button id="retry-btn" class="btn btn-primary">Try Again</button>
+    </div>
+
+    <!-- Login State -->
+    <div id="login-state" class="login-screen hidden">
+      <div class="login-logo">T</div>
+      <div class="login-title">TradeAutopsy</div>
+      <div class="login-subtitle">
+        Connect your TradeAutopsy account to track your trading rules and goals in real-time.
+      </div>
+      <button id="login-btn" class="login-btn">Connect Account</button>
+      <div class="login-help">
+        Don't have an account? <a id="signup-link" href="#">Sign up free</a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="content hidden">
+      <!-- Stop Trading Banner -->
+      <div id="stop-banner" class="stop-banner hidden">
+        <div class="stop-banner-icon">🛑</div>
+        <div class="stop-banner-title">STOP TRADING</div>
+        <div class="stop-banner-text">You've hit your loss limit. Take a break and review your trades.</div>
+      </div>
+
+      <!-- Stats Section -->
+      <section class="section">
+        <div class="section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          Today's Performance
+        </div>
+        <div class="stats-grid">
+          <div id="pnl-card" class="stat-card">
+            <div class="stat-label">P&L</div>
+            <div id="pnl-value" class="stat-value positive">+₹0</div>
+          </div>
+          <div id="trades-card" class="stat-card">
+            <div class="stat-label">Trades</div>
+            <div id="trades-value" class="stat-value">0</div>
+            <div id="trades-subtext" class="stat-subtext"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Win Rate</div>
+            <div id="winrate-value" class="stat-value">0%</div>
+          </div>
+          <div id="loss-card" class="stat-card">
+            <div class="stat-label">Loss Limit</div>
+            <div id="loss-value" class="stat-value">₹0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rules Section -->
+      <section id="rules-section" class="section hidden">
+        <div class="section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          Rules Status
+        </div>
+        <div id="rules-list" class="rules-list">
+          <!-- Rules will be populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Goals Section -->
+      <section id="goals-section" class="section hidden">
+        <div class="section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          Goals Progress
+        </div>
+        <div id="goals-list" class="goals-list">
+          <!-- Goals will be populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Warnings Section -->
+      <section id="warnings-section" class="section hidden">
+        <div class="section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          Alerts
+        </div>
+        <div id="warnings-list" class="warnings">
+          <!-- Warnings will be populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button id="open-dashboard-btn" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          Open Dashboard
+        </button>
+        <button id="refresh-data-btn" class="btn btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh Data
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a id="dashboard-link" href="#">Dashboard</a>
+        <a id="settings-link" href="#">Settings</a>
+        <a id="help-link" href="#">Help</a>
+      </div>
+      <div id="last-updated" class="last-updated"></div>
+    </footer>
+  </div>
+
+  <!-- Load external JavaScript file - NO INLINE SCRIPTS -->
+  <script src="app.js"></script>
+</body>
+</html>

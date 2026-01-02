@@ -7,7 +7,9 @@ import { NotificationSettings } from './components/NotificationSettings'
 import { AiAutomationSettings } from './components/AiAutomationSettings'
 import { DataPrivacySettings } from './components/DataPrivacySettings'
 import { AccountBillingSettings } from './components/AccountBillingSettings'
+import { BrowserExtensionSettings } from './components/BrowserExtensionSettings'
 import { AdvancedSettings } from './components/AdvancedSettings'
+import { DangerZone } from './components/DangerZone'
 import { UsageStatsCard } from './components/UsageStatsCard'
 import { PageLayout } from '@/components/layouts/PageLayout'
 
@@ -56,10 +58,12 @@ export default async function SettingsPage() {
           <div className="lg:col-span-2 space-y-6">
             <GeneralSettings />
             <NotificationSettings />
+            <BrowserExtensionSettings />
             <AiAutomationSettings />
             <DataPrivacySettings />
             <AccountBillingSettings />
             <AdvancedSettings />
+            <DangerZone />
           </div>
           <div className="lg:col-span-1">
             <UsageStatsCard />
