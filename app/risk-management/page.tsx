@@ -11,6 +11,8 @@ import {
 } from '@/lib/risk-calculations'
 import { calculateAvgProfit, calculateAvgLoss } from '@/lib/calculations'
 
+export const dynamic = 'force-dynamic'
+
 export default async function RiskManagementPage() {
   const supabase = await createClient()
   const cookieStore = await cookies()

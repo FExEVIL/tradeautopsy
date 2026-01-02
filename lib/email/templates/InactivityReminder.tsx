@@ -52,7 +52,7 @@ export function renderInactivityReminderEmail(data: InactivityReminderData): str
       label: 'Login to Dashboard',
       href: data.dashboardUrl,
     },
-    footerText: 'We're here to help you succeed!<br>The TradeAutopsy Team',
+    footerText: "We're here to help you succeed!<br>The TradeAutopsy Team",
   })
 }
 

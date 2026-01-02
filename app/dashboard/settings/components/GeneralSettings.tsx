@@ -7,21 +7,23 @@ export function GeneralSettings() {
   const { preferences, updatePreferences, isSaving } = useSettings()
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-[#111111] p-6 space-y-6">
+    <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-6 space-y-6">
       <div className="flex items-center gap-3 mb-4">
-        <Settings className="w-5 h-5 text-blue-400" />
-        <h2 className="text-xl font-semibold text-white">General</h2>
+        <div className="p-2.5 bg-emerald-500/10 rounded-lg">
+          <Settings className="w-5 h-5 text-emerald-500" />
+        </div>
+        <h2 className="text-lg font-semibold text-white">General</h2>
       </div>
 
       <div className="space-y-6">
         {/* Theme */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">Theme</label>
+          <label className="text-sm font-medium text-gray-400">Theme</label>
           <select
             value={preferences.theme || 'system'}
             onChange={(e) => updatePreferences({ theme: e.target.value })}
             disabled={isSaving}
-            className="w-full rounded-lg border border-gray-800 bg-black px-3 py-2 text-sm text-gray-100 focus:border-gray-600 focus:outline-none disabled:opacity-50"
+            className="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50 transition-colors"
           >
             <option value="light">Light</option>
             <option value="dark">Dark</option>
@@ -40,7 +42,7 @@ export function GeneralSettings() {
             value={preferences.base_currency || 'INR'}
             onChange={(e) => updatePreferences({ base_currency: e.target.value })}
             disabled={isSaving}
-            className="w-full rounded-lg border border-gray-800 bg-black px-3 py-2 text-sm text-gray-100 focus:border-gray-600 focus:outline-none disabled:opacity-50"
+            className="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50 transition-colors"
           >
             <option value="INR">₹ INR</option>
             <option value="USD">$ USD</option>
@@ -51,7 +53,7 @@ export function GeneralSettings() {
 
         {/* Date Format */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             Date Format
           </label>
@@ -59,7 +61,7 @@ export function GeneralSettings() {
             value={preferences.date_format || 'DD/MM/YYYY'}
             onChange={(e) => updatePreferences({ date_format: e.target.value })}
             disabled={isSaving}
-            className="w-full rounded-lg border border-gray-800 bg-black px-3 py-2 text-sm text-gray-100 focus:border-gray-600 focus:outline-none disabled:opacity-50"
+            className="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50 transition-colors"
           >
             <option value="DD/MM/YYYY">DD/MM/YYYY</option>
             <option value="MM/DD/YYYY">MM/DD/YYYY</option>
@@ -69,12 +71,12 @@ export function GeneralSettings() {
 
         {/* Language */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">Language</label>
+          <label className="text-sm font-medium text-gray-400">Language</label>
           <select
             value={preferences.language || 'en'}
             onChange={(e) => updatePreferences({ language: e.target.value })}
             disabled={isSaving}
-            className="w-full rounded-lg border border-gray-800 bg-black px-3 py-2 text-sm text-gray-100 focus:border-gray-600 focus:outline-none disabled:opacity-50"
+            className="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50 transition-colors"
           >
             <option value="en">English</option>
             <option value="hi">हिंदी</option>
@@ -83,7 +85,7 @@ export function GeneralSettings() {
 
         {/* Timezone */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
             <Clock className="w-4 h-4" />
             Timezone
           </label>
@@ -91,7 +93,7 @@ export function GeneralSettings() {
             value={preferences.timezone || 'Asia/Kolkata'}
             onChange={(e) => updatePreferences({ timezone: e.target.value })}
             disabled={isSaving}
-            className="w-full rounded-lg border border-gray-800 bg-black px-3 py-2 text-sm text-gray-100 focus:border-gray-600 focus:outline-none disabled:opacity-50"
+            className="w-full rounded-lg border border-[#2a2a2a] bg-[#0a0a0a] px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50 transition-colors"
           >
             <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
             <option value="UTC">UTC</option>

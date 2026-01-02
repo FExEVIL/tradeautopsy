@@ -99,16 +99,25 @@ export default async function BehavioralPage() {
       icon="brain"
     >
       <Tabs defaultValue="analysis" className="space-y-6">
-        <TabsList className="bg-white/5 border border-white/10 p-1 rounded-lg">
-          <TabsTrigger value="analysis" className="data-[state=active]:bg-white/10">
+        <TabsList className="bg-[#111111] border border-[#1f1f1f] p-1 rounded-lg">
+          <TabsTrigger 
+            value="analysis" 
+            className="data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-400 data-[state=active]:border-emerald-500/30 text-gray-400 border border-transparent"
+          >
             <Brain className="w-4 h-4 mr-2" />
             Pattern Detection
           </TabsTrigger>
-          <TabsTrigger value="library" className="data-[state=active]:bg-white/10">
+          <TabsTrigger 
+            value="library" 
+            className="data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-400 data-[state=active]:border-emerald-500/30 text-gray-400 border border-transparent"
+          >
             <Library className="w-4 h-4 mr-2" />
             Pattern Library
           </TabsTrigger>
-          <TabsTrigger value="mistakes" className="data-[state=active]:bg-white/10">
+          <TabsTrigger 
+            value="mistakes" 
+            className="data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-400 data-[state=active]:border-emerald-500/30 text-gray-400 border border-transparent"
+          >
             <AlertTriangle className="w-4 h-4 mr-2" />
             Mistakes Dashboard
           </TabsTrigger>

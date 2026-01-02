@@ -68,10 +68,10 @@ interface CollapsibleSidebarProps {
 }
 
 export function CollapsibleSidebar({ activeSection, onSectionChange }: CollapsibleSidebarProps) {
-  // Initialize with false to match server-side rendering (prevents hydration mismatch)
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [isHidden, setIsHidden] = useState(false)
+  // Initialize with true to hide sidebar by default (full-width layout)
+  const [isHidden, setIsHidden] = useState(true)
   const [isMounted, setIsMounted] = useState(false)
+  const [showToggle, setShowToggle] = useState(false)
   
   const pathname = usePathname()
   const router = useRouter()
@@ -81,25 +81,22 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
   // Load from localStorage after component mounts (client-side only)
   useEffect(() => {
     setIsMounted(true)
-    const collapsed = localStorage.getItem('sidebar_collapsed') === 'true'
-    const hidden = localStorage.getItem('taskbar_hidden') === 'true'
-    setIsCollapsed(collapsed)
-    setIsHidden(hidden)
-  }, [])
-
-  const handleToggleCollapse = () => {
-    const newState = !isCollapsed
-    setIsCollapsed(newState)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sidebar_collapsed', String(newState))
+    // Check if user has explicitly shown sidebar before, otherwise default to hidden
+    const saved = localStorage.getItem('sidebar_hidden')
+    if (saved !== null) {
+      setIsHidden(saved === 'true')
+    } else {
+      // First time - default to hidden for full-width layout
+      setIsHidden(true)
+      localStorage.setItem('sidebar_hidden', 'true')
     }
-  }
+  }, [])
 
   const handleToggleHide = () => {
     const newState = !isHidden
     setIsHidden(newState)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('taskbar_hidden', String(newState))
+      localStorage.setItem('sidebar_hidden', String(newState))
     }
   }
 
@@ -133,7 +130,7 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
     {
       title: 'MANAGE',
       items: [
-        { id: 'checklist', label: 'Pre-Market Checklist', href: '/dashboard/checklist', isLink: true, icon: CheckSquare },
+        { id: 'checklist', label: 'Pre-Market Checklist', href: '/dashboard/pre-market-checklist', isLink: true, icon: CheckSquare },
         { id: 'daily-plan', label: 'Daily Trade Plan', href: '/dashboard/daily-plan', isLink: true, icon: Target },
         { id: 'calendar', label: 'Calendar', href: '/dashboard/calendar', isLink: true, icon: Calendar },
         { id: 'journal', label: 'Journal', href: '/dashboard/journal', isLink: true, icon: BookOpen },
@@ -150,209 +147,176 @@ export function CollapsibleSidebar({ activeSection, onSectionChange }: Collapsib
     },
   ], [])
 
-  // Don't render hidden state until after mount to prevent hydration mismatch
-  if (isMounted && isHidden) {
-    return (
-      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-50">
-        <button
-          onClick={handleToggleHide}
-          className="w-10 h-16 bg-border-subtle hover:bg-border-default rounded-r-lg flex items-center justify-center transition-colors border-r border-border-default"
-          title="Show Sidebar"
-        >
-          <ChevronRight className="w-5 h-5 text-text-tertiary" />
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <div
-      className="w-80 h-screen bg-bg-card flex flex-col relative overflow-hidden border-r border-border-subtle"
-      style={{
-        transform: 'translateZ(0)', // Force GPU acceleration
-      }}
-    >
-      {/* Inner container that slides */}
+    <>
+      {/* Main Sidebar - Completely hidden when isHidden is true */}
       <div
-        className="flex flex-col h-full transition-transform duration-200 ease-out"
+        className={`
+          h-screen flex-shrink-0
+          bg-bg-card border-r border-border-subtle
+          transition-all duration-300 ease-out
+          flex flex-col overflow-hidden
+          ${isHidden ? 'w-0 border-r-0' : 'w-80'}
+        `}
         style={{
-          transform: isCollapsed ? 'translateX(calc(-100% + 72px))' : 'translateX(0)',
-          willChange: 'transform',
+          transform: 'translateZ(0)', // Force GPU acceleration
         }}
       >
-      {/* Header */}
-      <div className={`${isCollapsed ? 'p-4 pt-6' : 'p-6 pt-8'} flex items-center justify-center transition-all duration-200`}>
-        <Logo 
-          size="md" 
-          showText={!isCollapsed} 
-          showSubtitle={!isCollapsed}
-          href="/dashboard" 
-        />
-      </div>
+        {/* Inner container with fixed width */}
+        <div className={`w-80 h-full flex flex-col ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-200`}>
+          {/* Header */}
+          <div className="p-6 pt-8 flex items-center justify-center">
+            <Logo 
+              size="md" 
+              showText={true} 
+              showSubtitle={true}
+              href="/dashboard" 
+            />
+          </div>
 
-      {/* Navigation */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 scrollbar-hide">
-        {sections.map((section, idx) => (
-          <div key={idx} className={`${idx > 0 ? 'mt-6' : ''}`}>
-            {!isCollapsed && (
-              <h3 className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3 px-2">
-                {section.title} {section.items.length}
-              </h3>
-            )}
-            <div className="space-y-2">
-              {section.items.map((item) => {
-                const Icon = item.icon
-                // Check if pathname matches exactly or is a child route
-                const isActive = pathname === item.href || (pathname && pathname.startsWith(item.href + '/'))
+          {/* Navigation */}
+          <div className="flex-1 overflow-y-auto px-3 py-4 scrollbar-hide">
+            {sections.map((section, idx) => (
+              <div key={idx} className={`${idx > 0 ? 'mt-6' : ''}`}>
+                <h3 className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3 px-2">
+                  {section.title} {section.items.length}
+                </h3>
+                <div className="space-y-2">
+                  {section.items.map((item) => {
+                    const Icon = item.icon
+                    // Check if pathname matches exactly or is a child route
+                    const isActive = pathname === item.href || (pathname && pathname.startsWith(item.href + '/'))
 
-                const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-                  if (item.href !== pathname) {
-                    e.preventDefault()
-                    startTransition(() => {
-                      router.push(item.href)
-                    })
-                  }
-                }
-
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    onClick={handleClick}
-                    className={`
-                      flex items-center rounded-lg transition-all group relative
-                      ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'}
-                      ${
-                        isActive
-                          ? 'bg-border-subtle text-text-primary'
-                          : 'text-text-tertiary hover:bg-border-subtle hover:text-text-primary'
+                    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+                      if (item.href !== pathname) {
+                        e.preventDefault()
+                        startTransition(() => {
+                          router.push(item.href)
+                        })
                       }
-                      ${isPending ? 'opacity-70' : ''}
-                    `}
-                    title={isCollapsed ? item.label : undefined}
-                  >
-                    {/* Icon */}
-                    <Icon
-                      className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0 ${
-                        isActive 
-                          ? 'text-green-primary' 
-                          : 'text-text-tertiary group-hover:text-purple-primary'
-                      } transition-colors`}
-                    />
+                    }
 
-                    {/* Content (only when expanded) */}
-                    {!isCollapsed && (
-                      <div className="flex-1 ml-3 min-w-0 transition-opacity duration-200 ease-out">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="font-medium text-sm truncate">{item.label}</span>
-                          {'time' in item && item.time && (
-                            <span className="text-[10px] text-text-muted ml-2">{item.time}</span>
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        onClick={handleClick}
+                        className={`
+                          flex items-center rounded-lg transition-all group relative
+                          px-3 py-2.5
+                          ${
+                            isActive
+                              ? 'bg-border-subtle text-text-primary'
+                              : 'text-text-tertiary hover:bg-border-subtle hover:text-text-primary'
+                          }
+                          ${isPending ? 'opacity-70' : ''}
+                        `}
+                      >
+                        {/* Icon */}
+                        <Icon
+                          className={`w-5 h-5 flex-shrink-0 ${
+                            isActive 
+                              ? 'text-green-primary' 
+                              : 'text-text-tertiary group-hover:text-purple-primary'
+                          } transition-colors`}
+                        />
+
+                        {/* Content */}
+                        <div className="flex-1 ml-3 min-w-0 transition-opacity duration-200 ease-out">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="font-medium text-sm truncate">{item.label}</span>
+                            {'time' in item && item.time && (
+                              <span className="text-[10px] text-text-muted ml-2">{item.time}</span>
+                            )}
+                          </div>
+
+                          {'progress' in item ? (
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[10px]">
+                                <span className="text-text-tertiary">{item.status}</span>
+                                <span className="text-text-muted">{item.progress}%</span>
+                              </div>
+                              <div className="w-full h-1 bg-border-subtle rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-blue-primary transition-all duration-500 rounded-full"
+                                  style={{ width: `${item.progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            'stats' in item &&
+                            item.stats && (
+                              <div className="text-[11px] text-green-text font-medium">{item.stats}</div>
+                            )
                           )}
                         </div>
-
-                        {'progress' in item ? (
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[10px]">
-                              <span className="text-text-tertiary">{item.status}</span>
-                              <span className="text-text-muted">{item.progress}%</span>
-                            </div>
-                            <div className="w-full h-1 bg-border-subtle rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-blue-primary transition-all duration-500 rounded-full"
-                                style={{ width: `${item.progress}%` }}
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          'stats' in item &&
-                          item.stats && (
-                            <div className="text-[11px] text-green-text font-medium">{item.stats}</div>
-                          )
-                        )}
-                      </div>
-                    )}
-
-                    {/* Badge indicator when collapsed (for AI Powered items) */}
-                    {isCollapsed && 'stats' in item && item.stats === 'AI Powered' && (
-                      <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-purple-primary rounded-full border border-bg-card" />
-                    )}
-
-                    {/* Active indicator dot (collapsed mode) */}
-                    {isCollapsed && isActive && (
-                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-primary rounded-l-full" />
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-
-        {/* Toggle Buttons */}
-        <div className="mt-6 space-y-2">
-          <button
-            onClick={handleToggleCollapse}
-            className={`
-              flex items-center rounded-lg transition-all group relative w-full
-              ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'}
-              text-text-tertiary hover:bg-border-subtle hover:text-text-primary
-            `}
-            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="w-6 h-6 flex-shrink-0 text-text-tertiary group-hover:text-text-primary" />
-            ) : (
-              <>
-                <ChevronLeft className="w-5 h-5 flex-shrink-0 text-text-tertiary group-hover:text-text-primary" />
-                <div className="flex-1 ml-3 min-w-0">
-                  <span className="font-medium text-sm">Collapse</span>
+                      </Link>
+                    )
+                  })}
                 </div>
-              </>
-            )}
-          </button>
-          {!isCollapsed && (
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom Section */}
+          <div className="p-3 border-t border-[#1f1f1f] space-y-2">
+            {/* Hide Button - Same style as Import button */}
             <button
               onClick={handleToggleHide}
-              className="flex items-center px-3 py-2.5 rounded-lg transition-all group relative w-full text-text-tertiary hover:bg-border-subtle hover:text-text-primary"
-              title="Hide Sidebar"
+              className="w-full flex items-center gap-3 px-3 py-2.5 bg-[#111111] hover:bg-[#1a1a1a] text-gray-300 rounded-lg transition-colors"
             >
-              <X className="w-5 h-5 flex-shrink-0 text-text-tertiary group-hover:text-text-primary" />
-              <div className="flex-1 ml-3 min-w-0">
-                <span className="font-medium text-sm">Hide</span>
-              </div>
+              <X className="w-5 h-5" />
+              <span className="text-sm">Hide</span>
             </button>
-          )}
+
+            {/* Import New Trades Button */}
+            <Link
+              href="/dashboard/import"
+              className="w-full flex items-center gap-3 px-3 py-2.5 bg-[#111111] hover:bg-[#1a1a1a] text-gray-300 rounded-lg transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="text-sm">Import New Trades</span>
+            </Link>
+
+            {/* Logout Button */}
+            <button
+              onClick={logout}
+              disabled={isLoggingOut}
+              className="flex items-center gap-3 px-3 py-2.5 text-text-tertiary hover:text-red-400 hover:bg-red-500/10 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 w-full"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <LogOut className="w-4 h-4" />
+              )}
+              <span>{isLoggingOut ? 'Logging out...' : 'Log out'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Import New Trades Button */}
-      <div className={`${isCollapsed ? 'px-3 pb-2' : 'px-4 pb-2'} transition-opacity duration-200`}>
-        <Link
-          href="/dashboard/import"
-          className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-border-subtle hover:bg-border-default text-text-secondary rounded-lg text-sm font-medium transition-colors border border-border-default ${isCollapsed ? 'px-3' : ''}`}
-        >
-          <Plus className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'}`} />
-          {!isCollapsed && <span>Import New Trades</span>}
-        </Link>
-      </div>
-
-      {/* Logout Button */}
-      <div className={`${isCollapsed ? 'px-3 pb-4' : 'px-4 pb-4'} transition-opacity duration-200`}>
+      {/* Show Sidebar Button - Only visible when sidebar is hidden */}
+      {isHidden && (
         <button
-          onClick={logout}
-          disabled={isLoggingOut}
-          className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 text-text-tertiary hover:text-red-400 hover:bg-red-500/10 rounded-lg text-sm font-medium transition-colors ${isCollapsed ? 'px-3' : ''} disabled:opacity-50`}
-          title={isCollapsed ? 'Log out' : undefined}
+          onClick={handleToggleHide}
+          onMouseEnter={() => setShowToggle(true)}
+          onMouseLeave={() => setShowToggle(false)}
+          className={`
+            fixed left-0 top-1/2 -translate-y-1/2 z-50
+            h-16 px-1
+            bg-[#111111] hover:bg-[#1a1a1a]
+            border border-[#2a2a2a] border-l-0 hover:border-emerald-500/50
+            rounded-r-lg
+            flex items-center justify-center
+            transition-all duration-200
+            ${showToggle ? 'opacity-100' : 'opacity-30'}
+          `}
+          title="Show Sidebar"
+          aria-label="Show Sidebar"
         >
-          {isLoggingOut ? (
-            <Loader2 className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'} animate-spin`} />
-          ) : (
-            <LogOut className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'}`} />
-          )}
-          {!isCollapsed && <span>{isLoggingOut ? 'Logging out...' : 'Log out'}</span>}
+          <ChevronRight className="w-4 h-4 text-gray-400 hover:text-emerald-400 transition-colors" />
         </button>
-      </div>
-      </div>
-    </div>
+      )}
+    </>
   )
 }

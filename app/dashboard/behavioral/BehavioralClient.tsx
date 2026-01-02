@@ -38,10 +38,10 @@ function TradeDrillDownModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#0F0F0F] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/5">
+        <div className="flex items-center justify-between p-6 border-b border-[#1f1f1f]">
           <div>
             <h3 className="text-xl font-bold text-white">{insight.title}</h3>
             <p className="text-sm text-gray-400 mt-1">{insight.description}</p>
@@ -63,7 +63,7 @@ function TradeDrillDownModal({
           {Array.isArray(details) && details.length > 0 ? (
             <div className="space-y-2">
               {details.map((item: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-[#0A0A0A] border border-white/5 rounded-lg hover:bg-white/5 transition-colors">
+                <div key={idx} className="flex items-center justify-between p-4 bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg hover:bg-[#1a1a1a] transition-colors">
                   <div className="flex items-center gap-4">
                     <div className={`w-2 h-2 rounded-full ${item.pnl > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
                     <div>
@@ -84,14 +84,14 @@ function TradeDrillDownModal({
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center border border-dashed border-white/10 rounded-xl">
+            <div className="p-8 text-center border border-dashed border-[#2a2a2a] rounded-xl">
               <p className="text-gray-500 text-sm">No specific trade details available for this pattern.</p>
             </div>
           )}
         </div>
 
         {/* Modal Footer */}
-        <div className="p-6 border-t border-white/5 bg-[#0A0A0A] rounded-b-2xl flex justify-between items-center">
+        <div className="p-6 border-t border-[#1f1f1f] bg-[#0a0a0a] rounded-b-xl flex justify-between items-center">
           <div className="flex items-center gap-2 text-sm text-emerald-200">
              <Zap className="w-4 h-4" />
              <span>{insight.suggestion}</span>
@@ -120,7 +120,7 @@ function InsightCard({ insight, onClick }: InsightCardProps) {
     },
     warning: {
       border: 'border-amber-500/20',
-      bg: 'bg-[#0A0A0A]',
+      bg: 'bg-[#111111]',
       iconBg: 'bg-amber-500/10',
       iconColor: 'text-amber-400',
       Icon: TrendingDown,
@@ -128,7 +128,7 @@ function InsightCard({ insight, onClick }: InsightCardProps) {
     },
     success: {
       border: 'border-green-500/20',
-      bg: 'bg-[#0A0A0A]',
+      bg: 'bg-[#111111]',
       iconBg: 'bg-green-500/10',
       iconColor: 'text-green-400',
       Icon: CheckCircle2,
@@ -136,7 +136,7 @@ function InsightCard({ insight, onClick }: InsightCardProps) {
     },
     info: {
       border: 'border-emerald-500/20',
-      bg: 'bg-[#0A0A0A]',
+      bg: 'bg-[#111111]',
       iconBg: 'bg-emerald-500/10',
       iconColor: 'text-emerald-400',
       Icon: Brain,
@@ -151,8 +151,8 @@ function InsightCard({ insight, onClick }: InsightCardProps) {
       onClick={() => onClick(insight)}
       className={`
         group w-full text-left p-5 rounded-xl border transition-all
-        ${config.border} ${config.bg}
-        hover:border-white/20 hover:bg-white/5
+        bg-[#111111] ${config.border}
+        hover:border-emerald-500/30 hover:bg-[#1a1a1a]
       `}
     >
       <div className="flex items-start gap-4">
@@ -217,30 +217,20 @@ export default function BehavioralClient({ insights = [], trades = [] }: Props) 
   )
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-[1600px] mx-auto space-y-8">
-        
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between gap-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Brain className="w-6 h-6 text-purple-400" />
-              Behavioral Analysis
-            </h1>
-            <p className="text-gray-400 text-sm mt-1 max-w-2xl">
-              AI-powered insights based on {trades.length} trades. Click on any card to see the contributing trades.
-            </p>
-          </div>
+    <div className="w-full space-y-6">
+        {/* Description */}
+        <p className="text-gray-400 text-sm">
+          AI-powered insights based on {trades.length} trades. Click on any card to see the contributing trades.
+        </p>
 
-          {/* Discipline Score */}
-          <div className="flex items-center gap-4 bg-[#0A0A0A] border border-white/10 p-3 rounded-xl">
-            <div className="text-right">
-              <p className="text-xs text-gray-500 uppercase">Discipline Score</p>
-              <p className="text-2xl font-bold text-white">{score}</p>
-            </div>
-            <div className="w-16 h-16 rounded-full border-4 border-emerald-500/20 flex items-center justify-center">
-              <span className="text-emerald-400 font-bold">{score}</span>
-            </div>
+        {/* Discipline Score */}
+        <div className="flex items-center gap-4 bg-[#111111] border border-[#1f1f1f] p-4 rounded-xl">
+          <div className="text-right">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Discipline Score</p>
+            <p className="text-2xl font-bold text-white">{score}</p>
+          </div>
+          <div className="w-16 h-16 rounded-full border-4 border-emerald-500/20 flex items-center justify-center">
+            <span className="text-emerald-400 font-bold">{score}</span>
           </div>
         </div>
 
@@ -305,7 +295,6 @@ export default function BehavioralClient({ insights = [], trades = [] }: Props) 
             <p className="text-sm text-gray-500 mt-2">Add more trades to generate insights.</p>
           </div>
         )}
-      </div>
 
       {/* Modal */}
       <TradeDrillDownModal insight={selectedInsight} onClose={() => setSelectedInsight(null)} />

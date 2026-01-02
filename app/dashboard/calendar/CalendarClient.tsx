@@ -107,28 +107,105 @@ export default function CalendarClient({ dailyData: initialDailyData = {} }: Pro
       setError(null)
 
       try {
-        const startDate = new Date(year, month, 1).toISOString().split('T')[0]
-        const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
-
-        const response = await fetch(
-          `/api/trades/calendar?start_date=${startDate}&end_date=${endDate}`
-        )
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch calendar data')
-        }
-
-        const result = await response.json()
+        const monthNum = month + 1 // 1-12
+        const yearNum = year
         
-        if (result.success && result.data) {
-          // Merge with existing data
-          setDailyData(prev => ({ ...prev, ...result.data }))
-        } else {
-          throw new Error(result.error || 'Failed to load calendar')
+        console.log('Fetching calendar data for:', { month: monthNum, year: yearNum })
+        
+        // Try primary endpoint
+        const response = await fetch(`/api/calendar/month?month=${monthNum}&year=${yearNum}`, {
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        
+        // Log the raw response for debugging
+        const responseText = await response.text()
+        console.log('Raw API response:', responseText.substring(0, 500))
+        
+        let result
+        try {
+          result = JSON.parse(responseText)
+        } catch (parseError) {
+          console.error('Failed to parse response:', parseError)
+          throw new Error('Invalid JSON response from server')
         }
+        
+        console.log('Parsed result:', { 
+          success: result.success, 
+          dataType: Array.isArray(result.data) ? 'array' : typeof result.data,
+          dataLength: Array.isArray(result.data) ? result.data.length : Object.keys(result.data || {}).length
+        })
+        
+        // Even if success is false, try to use the data
+        const days = result.data || result.days || []
+        
+        // Convert to map - handle both object and array formats
+        const dataMap: Record<string, DayData> = {}
+        
+        if (Array.isArray(days)) {
+          // Array format: [{ date: "2025-01-15", pnl: 100, trades_count: 1 }]
+          days.forEach((day: any) => {
+            if (day && day.date) {
+              const dateKey = String(day.date).split('T')[0]
+              if (dateKey && dateKey !== 'undefined' && dateKey !== 'null') {
+                dataMap[dateKey] = {
+                  pnl: day.pnl || 0,
+                  trades: day.trades || [],
+                  count: day.trades_count || day.tradesCount || day.count || 0,
+                }
+              }
+            }
+          })
+        } else if (typeof days === 'object' && days !== null) {
+          // Object format: { "2025-01-15": { pnl: 100, trades: [], count: 1 } }
+          Object.entries(days).forEach(([dateKey, dayData]: [string, any]) => {
+            if (dayData && typeof dayData === 'object') {
+              dataMap[dateKey] = {
+                pnl: dayData.pnl || 0,
+                trades: dayData.trades || dayData.trade || [],
+                count: dayData.count || dayData.trades_count || dayData.tradesCount || 0,
+              }
+            }
+          })
+        }
+        
+        console.log('Processed data map:', Object.keys(dataMap).length, 'days')
+        
+        setDailyData(prev => ({ ...prev, ...dataMap }))
+        
+        // Set summary if provided
+        if (result.summary) {
+          // Summary is already in the right format
+          console.log('Using API summary:', result.summary)
+        } else {
+          // Calculate summary from days
+          const summary = {
+            total_pnl: Object.values(dataMap).reduce((sum, d) => sum + (d.pnl || 0), 0),
+            total_trades: Object.values(dataMap).reduce((sum, d) => sum + (d.count || 0), 0),
+            green_days: Object.values(dataMap).filter(d => (d.pnl || 0) > 0).length,
+            red_days: Object.values(dataMap).filter(d => (d.pnl || 0) < 0).length,
+            win_rate: 0
+          }
+          const totalWins = Object.values(dataMap).reduce((sum, d) => sum + (d.count || 0), 0)
+          if (summary.total_trades > 0) {
+            summary.win_rate = (totalWins / summary.total_trades) * 100
+          }
+          console.log('Calculated summary:', summary)
+        }
+        
+        // Show debug error if present (but don't fail)
+        if (result.error) {
+          console.warn('API returned with error (non-fatal):', result.error)
+        }
+        
       } catch (err: any) {
         console.error('Calendar fetch error:', err)
-        setError(err.message)
+        setError(err.message || 'Failed to load calendar')
+        
+        // Set empty state instead of failing completely
+        setDailyData(prev => prev)
       } finally {
         setIsLoading(false)
       }
@@ -289,16 +366,36 @@ export default function CalendarClient({ dailyData: initialDailyData = {} }: Pro
           <div className="text-center py-20">
             <p className="text-red-400 mb-4">{error}</p>
             <button
-              onClick={() => {
-                const startDate = new Date(year, month, 1).toISOString().split('T')[0]
-                const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
-                fetch(`/api/trades/calendar?start_date=${startDate}&end_date=${endDate}`)
-                  .then(r => r.json())
-                  .then(d => {
-                    if (d.success) setDailyData(prev => ({ ...prev, ...d.data }))
-                  })
+              onClick={async () => {
+                setIsLoading(true)
+                setError(null)
+                try {
+                  const monthNum = month + 1
+                  const yearNum = year
+                  const startDate = new Date(year, month, 1).toISOString().split('T')[0]
+                  const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
+                  
+                  // Try multiple endpoints
+                  let response = await fetch(`/api/calendar/month?month=${monthNum}&year=${yearNum}`)
+                  if (!response.ok) {
+                    response = await fetch(`/api/trades/calendar?start_date=${startDate}&end_date=${endDate}`)
+                  }
+                  
+                  if (response.ok) {
+                    const result = await response.json()
+                    if (result.success && result.data) {
+                      setDailyData(prev => ({ ...prev, ...result.data }))
+                      setError(null)
+                    }
+                  }
+                } catch (err: any) {
+                  console.error('Retry error:', err)
+                  setError(err.message)
+                } finally {
+                  setIsLoading(false)
+                }
               }}
-              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
             >
               Retry
             </button>

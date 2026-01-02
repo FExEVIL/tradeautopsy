@@ -14,15 +14,15 @@ export default function DashboardLayout({
 }) {
   return (
     <UserProvider>
-      <ProfileProvider>
-        <ProfileDashboardProvider>
+    <ProfileProvider>
+      <ProfileDashboardProvider>
         <OnboardingWrapper />
         <ClientWidgets />
-        <div className="flex h-screen bg-black overflow-hidden">
+        <div className="flex h-screen bg-[#0a0a0a] overflow-hidden">
           <CollapsibleSidebar />
-          <div className="flex-1 flex flex-col overflow-hidden transition-all duration-200" style={{ transform: 'translateZ(0)' }}>
+          <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300" style={{ transform: 'translateZ(0)' }}>
             <DashboardHeader />
-            <main className="flex-1 overflow-y-auto bg-black scrollbar-hide">
+            <main className="flex-1 overflow-y-auto bg-[#0a0a0a] scrollbar-hide min-w-0 w-full">
               <Suspense fallback={
                 <div className="flex items-center justify-center min-h-screen">
                   <div className="text-center">
@@ -36,8 +36,8 @@ export default function DashboardLayout({
             </main>
           </div>
         </div>
-        </ProfileDashboardProvider>
-      </ProfileProvider>
+      </ProfileDashboardProvider>
+    </ProfileProvider>
     </UserProvider>
   )
 }

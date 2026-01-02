@@ -123,7 +123,7 @@ export function MistakesDashboard() {
       </div>
 
       {/* What NOT to Repeat */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <X className="w-5 h-5 text-red-400" />
           What NOT to Repeat

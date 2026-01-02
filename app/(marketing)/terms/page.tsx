@@ -1,11 +1,7 @@
-import { Metadata } from 'next'
+'use client'
+
 import Link from 'next/link'
 import { ArrowUp, FileText, AlertTriangle, Shield, CreditCard, XCircle, Mail } from 'lucide-react'
-
-export const metadata: Metadata = {
-  title: 'Terms of Service | TradeAutopsy',
-  description: 'TradeAutopsy Terms of Service - Read our terms and conditions for using the platform.',
-}
 
 export default function TermsOfServicePage() {
   const scrollToTop = () => {

@@ -123,16 +123,36 @@ export function withMiddleware<T = any>(
           return unauthorizedResponse('Authentication required')
         }
 
-        userId = user?.id || workosProfileId || null
-
-        // Extract profile ID from header or cookie
-        const profileHeader = req.headers.get('x-profile-id')
-        if (profileHeader) {
-          profileId = profileHeader === 'null' ? null : profileHeader
+        // CRITICAL: For WorkOS users, we need to look up the profile to get the correct user_id
+        // This is because trades are linked to user_id, not workos_profile_id
+        if (workosProfileId && !user) {
+          // Look up the profile to get the associated user_id
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, user_id')
+            .eq('id', workosProfileId)
+            .maybeSingle()
+          
+          if (profile) {
+            // Use user_id if available (for linked accounts), otherwise use profile id
+            userId = profile.user_id || profile.id
+            profileId = profile.id
+          } else {
+            userId = workosProfileId
+            profileId = workosProfileId
+          }
         } else {
-          // Try to get from cookie or user preferences
-          const cookieProfileId = req.cookies.get('profile_id')?.value || workosProfileId
-          profileId = cookieProfileId === 'null' || !cookieProfileId ? null : cookieProfileId
+          userId = user?.id || workosProfileId || null
+          
+          // Extract profile ID from header or cookie
+          const profileHeader = req.headers.get('x-profile-id')
+          if (profileHeader) {
+            profileId = profileHeader === 'null' ? null : profileHeader
+          } else {
+            // Try to get from cookie or user preferences
+            const cookieProfileId = req.cookies.get('profile_id')?.value || workosProfileId
+            profileId = cookieProfileId === 'null' || !cookieProfileId ? null : cookieProfileId
+          }
         }
       }
 

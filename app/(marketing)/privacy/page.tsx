@@ -1,11 +1,7 @@
-import { Metadata } from 'next'
+'use client'
+
 import Link from 'next/link'
 import { ArrowUp, Shield, Lock, Database, Eye, UserCheck, Cookie, Clock, Users, Mail } from 'lucide-react'
-
-export const metadata: Metadata = {
-  title: 'Privacy Policy | TradeAutopsy',
-  description: 'TradeAutopsy Privacy Policy - Learn how we collect, use, and protect your trading data.',
-}
 
 export default function PrivacyPolicyPage() {
   const scrollToTop = () => {

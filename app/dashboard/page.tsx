@@ -184,8 +184,8 @@ export default async function DashboardPage(
 
       {/* ✅ LCP ELEMENT - Top KPIs - Hero Net P&L + Journal Progress */}
       {/* This is likely the LCP element - render FIRST with server data */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card variant="dark" className="lg:col-span-2 min-h-[120px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <Card variant="dark" className="min-h-[120px]">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
               Net P&L
@@ -220,7 +220,7 @@ export default async function DashboardPage(
       </div>
 
       {/* ✅ Secondary Metrics Row - Fixed heights to prevent CLS */}
-      <div className="grid-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="WIN RATE"
           value={`${winRate}%`}
@@ -272,7 +272,7 @@ export default async function DashboardPage(
       </div>
 
       {/* ✅ Charts Section - Load AFTER LCP element (progressive rendering) */}
-      <div className="grid-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card variant="dark">
           <h3 className="text-lg font-semibold mb-4 text-white">
             Cumulative P&L
@@ -326,7 +326,7 @@ export default async function DashboardPage(
       </div>
 
       {/* AI Coach & Benchmark */}
-      <div className="grid-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <AICoachCard />
         <BenchmarkCard isConnected={isZerodhaConnected} />
       </div>

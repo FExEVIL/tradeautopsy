@@ -23,7 +23,7 @@ export function PatternLibrarySection({ patterns }: PatternLibrarySectionProps) 
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 bg-[#0F0F0F] border border-white/5 rounded-2xl">
+        <div className="text-center py-12 bg-[#111111] border border-[#1f1f1f] rounded-xl">
           <p className="text-gray-400 mb-2">No patterns detected yet</p>
           <p className="text-sm text-gray-500">Keep trading and patterns will be automatically detected</p>
         </div>
